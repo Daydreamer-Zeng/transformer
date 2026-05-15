@@ -1,3 +1,57 @@
+export const TOKEN_TYPES = Object.freeze({
+  // Literals
+  NullLiteral: "NullLiteral",
+  BooleanLiteral: "BooleanLiteral",
+  NumericLiteral: "NumericLiteral",
+  StringLiteral: "StringLiteral",
+  RegularExpressionLiteral: "RegularExpressionLiteral",
+
+  // Template literals
+  TemplateLiteralBegin: "TemplateLiteralBegin",
+  TemplateLiteralEnd: "TemplateLiteralEnd",
+  TemplateElement: "TemplateElement",
+  TemplateExpressionStart: "TemplateExpressionStart",
+  TemplateExpressionEnd: "TemplateExpressionEnd",
+  // keywords
+  Keyword: "Keyword",
+
+  // Identifiers
+  Identifier: "Identifier",
+
+  // Operators
+  Operator: "Operator",
+
+  // Punctuators
+  Punctuator: "Punctuator",
+
+  // Comments
+  CommentLine: "CommentLine",
+  CommentBlock: "CommentBlock",
+
+  // Others
+  Whitespace: "Whitespace",
+  EOF: "EOF",
+});
+
+const EOF_TOKEN = {
+  type: TOKEN_TYPES.EOF,
+  value: "EOF",
+  start: null,
+  end: null,
+  loc: {
+    start: {
+      line: 1,
+      column: 0,
+      index: 0
+    },
+    end: {
+      line: 1,
+      column: 0,
+      index: 0
+    }
+  },
+};
+
 export default class Tokenizer {
   constructor() {
     this.source = "";
@@ -6,33 +60,6 @@ export default class Tokenizer {
     this.currentChar = null;
     this.line = 1;
     this.column = 0;
-
-    this.types = {
-      // Literals
-      NullLiteral: "NullLiteral",
-      BooleanLiteral: "BooleanLiteral",
-      NumericLiteral: "NumericLiteral",
-      StringLiteral: "StringLiteral",
-      RegularExpressionLiteral: "RegularExpressionLiteral",
-      // Template literals
-      TemplateLiteralBegin: "TemplateLiteralBegin",
-      TemplateLiteralEnd: "TemplateLiteralEnd",
-      TemplateElement: "TemplateElement",
-      TemplateExpressionStart: "TemplateExpressionStart",
-      TemplateExpressionEnd: "TemplateExpressionEnd",
-      // keywords
-      Keyword: "Keyword",
-      // Identifiers
-      Identifier: "Identifier",
-      // Operators
-      Operator: "Operator",
-      // Punctuators
-      Punctuator: "Punctuator",
-      // Others
-      CommentLine: "CommentLine",
-      CommentBlock: "CommentBlock",
-      Whitespace: "Whitespace",
-    };
   }
 
   static KEYWORD = new Set([
@@ -209,7 +236,7 @@ export default class Tokenizer {
     this.source = source;
     this.tokens = [];
     this.position = 0;
-    this.currentChar = this.source[this.position] || null;
+    this.currentChar = this.source[0] || null;
     this.line = 1;
     this.column = 0;
   }
@@ -219,7 +246,7 @@ export default class Tokenizer {
 
     while (this.currentChar !== null) {
       if (this.isWhitespace()) {
-        this.readWhitespace();
+        this.skipWhitespace();
         continue;
       }
 
@@ -264,12 +291,24 @@ export default class Tokenizer {
       );
     }
 
+    let eof = EOF_TOKEN;
+    if (this.tokens.length > 0) {
+      const end = this.tokens[this.tokens.length - 1]
+      eof.loc = end.loc;
+      eof.start = end.start;
+      eof.end = end.end;
+    }
+    this.tokens.push(eof);
+
     return this.tokens;
   }
 
   nextChar() {
+    if (this.currentChar === null) {
+      return
+    }
+
     this.position++;
-    this.currentChar = this.source[this.position] || null;
 
     if (this.currentChar === "\n") {
       this.line++;
@@ -277,6 +316,8 @@ export default class Tokenizer {
     } else {
       this.column++;
     }
+
+    this.currentChar = this.source[this.position] || null;
   }
 
   peekChar(offset = 1) {
@@ -298,24 +339,24 @@ export default class Tokenizer {
     };
   }
 
-  createToken(type, value, startLocation, extra) {
-    const endLocation = this.getLocation();
+  createToken(type, value, startLoc, extra) {
+    const endLoc = this.getLocation();
 
     return {
       type,
       value,
-      location: {
-        start: startLocation,
-        end: endLocation,
+      loc: {
+        start: startLoc,
+        end: endLoc,
       },
-      start: this.position - (this.column - startLocation.column),
-      end: this.position,
+      start: startLoc.index,
+      end: endLoc.index,
       extra,
     };
   }
 
-  addToken(type, value, startLocation, extra) {
-    const token = this.createToken(type, value, startLocation, extra);
+  addToken(type, value, startLoc, extra) {
+    const token = this.createToken(type, value, startLoc, extra);
     this.tokens.push(token);
   }
 
@@ -340,24 +381,30 @@ export default class Tokenizer {
     );
   }
 
-  readWhitespace() {
-    const location = this.getLocation();
-    let whitespace = "";
+  // readWhitespace() {
+  //   const loc = this.getLocation();
+  //   let whitespace = "";
 
+  //   while (this.currentChar !== null && this.isWhitespace()) {
+  //     whitespace += this.currentChar;
+  //     this.nextChar();
+  //   }
+
+  //   if (whitespace) {
+  //     this.addToken(TOKEN_TYPES.Whitespace, whitespace, loc);
+  //   }
+
+  //   return whitespace;
+  // }
+
+  skipWhitespace() {
     while (this.currentChar !== null && this.isWhitespace()) {
-      whitespace += this.currentChar;
       this.nextChar();
     }
-
-    if (whitespace) {
-      this.addToken(this.types.Whitespace, whitespace, location);
-    }
-
-    return whitespace;
   }
 
   readIdentifier() {
-    const location = this.getLocation();
+    const loc = this.getLocation();
     let value = "";
 
     while (
@@ -374,22 +421,22 @@ export default class Tokenizer {
 
     switch (value) {
       case "null":
-        this.addToken(this.types.NullLiteral, value, location);
+        this.addToken(TOKEN_TYPES.NullLiteral, value, loc);
         break;
 
       case "true":
-        this.addToken(this.types.BooleanLiteral, true, location);
+        this.addToken(TOKEN_TYPES.BooleanLiteral, true, loc);
         break;
 
       case "false":
-        this.addToken(this.types.BooleanLiteral, false, location);
+        this.addToken(TOKEN_TYPES.BooleanLiteral, false, loc);
         break;
 
       default:
         const type = Tokenizer.KEYWORD.has(value)
-          ? this.types.Keyword
-          : this.types.Identifier;
-        this.addToken(type, value, location);
+          ? TOKEN_TYPES.Keyword
+          : TOKEN_TYPES.Identifier;
+        this.addToken(type, value, loc);
         break;
     }
   }
@@ -418,7 +465,7 @@ export default class Tokenizer {
   }
 
   readNumberLiteral() {
-    const location = this.getLocation();
+    const loc = this.getLocation();
     let value = "";
 
     while (
@@ -442,20 +489,20 @@ export default class Tokenizer {
     ) {
       const numeric = Number(value);
       this.addToken(
-        this.types.NumericLiteral,
+        TOKEN_TYPES.NumericLiteral,
         numeric,
-        location,
+        loc,
         this.createExtra(value, numeric)
       );
     } else {
       throw new Error(
-        `Invalid numeric literal: ${value} at line ${location.line}, column ${location.column}`
+        `Invalid numeric literal: ${value} at line ${loc.line}, column ${loc.column}`
       );
     }
   }
 
   readStringLiteral() {
-    const location = this.getLocation();
+    const loc = this.getLocation();
     const quote = this.currentChar;
     let value = "";
 
@@ -481,7 +528,7 @@ export default class Tokenizer {
       }
     }
 
-    this.addToken(this.types.StringLiteral, value, location);
+    this.addToken(TOKEN_TYPES.StringLiteral, value, loc, this.createExtra(quote + value + quote, value));
   }
 
   parseEscape() {
@@ -540,13 +587,13 @@ export default class Tokenizer {
   }
 
   readTemplateLiteral() {
-    const location = this.getLocation();
+    const loc = this.getLocation();
     let value = "";
     let inTemplateExpression = false;
 
     this.nextChar();
 
-    this.addToken(this.types.TemplateLiteralBegin, "`", location);
+    this.addToken(TOKEN_TYPES.TemplateLiteralBegin, "`", loc);
 
     while (this.currentChar !== null) {
       if (inTemplateExpression) {
@@ -554,7 +601,7 @@ export default class Tokenizer {
         while (this.currentChar !== null && braceDepth > 0) {
           if (this.currentChar === "{") {
             braceDepth++;
-            this.addToken(this.types.Punctuator, "{", location);
+            this.addToken(TOKEN_TYPES.Punctuator, "{", loc);
             this.nextChar();
             continue;
           }
@@ -563,18 +610,18 @@ export default class Tokenizer {
             braceDepth--;
             if (braceDepth === 0) {
               // close of the template expression
-              this.addToken(this.types.TemplateExpressionEnd, "}", location);
+              this.addToken(TOKEN_TYPES.TemplateExpressionEnd, "}", loc);
               this.nextChar();
               break;
             } else {
-              this.addToken(this.types.Punctuator, "}", location);
+              this.addToken(TOKEN_TYPES.Punctuator, "}", loc);
               this.nextChar();
               continue;
             }
           }
 
           if (this.isWhitespace()) {
-            this.readWhitespace();
+            this.skipWhitespace();
             continue;
           }
 
@@ -623,10 +670,11 @@ export default class Tokenizer {
       }
 
       if (this.currentChar === "`") {
+        const endLoc = this.getLocation();
         this.nextChar();
 
-        this.addToken(this.types.TemplateElement, value, location);
-        this.addToken(this.types.TemplateLiteralEnd, "`", location);
+        this.addToken(TOKEN_TYPES.TemplateElement, value, loc);
+        this.addToken(TOKEN_TYPES.TemplateLiteralEnd, "`", endLoc);
         break;
       }
 
@@ -636,8 +684,8 @@ export default class Tokenizer {
         this.nextChar();
         this.nextChar();
 
-        this.addToken(this.types.TemplateElement, value, location);
-        this.addToken(this.types.TemplateExpressionStart, "${", location);
+        this.addToken(TOKEN_TYPES.TemplateElement, value, loc);
+        this.addToken(TOKEN_TYPES.TemplateExpressionStart, "${", loc);
         value = "";
         continue;
       }
@@ -661,7 +709,7 @@ export default class Tokenizer {
 
   isStartOfRegex() {
     let index = this.tokens.length - 1;
-    while (index >= 0 && this.tokens[index].type === this.types.Whitespace) {
+    while (index >= 0 && this.tokens[index].type === TOKEN_TYPES.Whitespace) {
       index--;
     }
 
@@ -685,7 +733,7 @@ export default class Tokenizer {
   }
 
   readRegularExpressionLiteral() {
-    const location = this.getLocation();
+    const loc = this.getLocation();
     let value = "";
 
     this.nextChar();
@@ -702,14 +750,14 @@ export default class Tokenizer {
 
     if (value) {
       this.addToken(
-        this.types.RegularExpressionLiteral,
+        TOKEN_TYPES.RegularExpressionLiteral,
         value,
-        location,
+        loc,
         this.createExtra(`/${value}/`, value)
       );
     } else {
       throw new Error(
-        `Unterminated regular expression literal at line ${location.line}, column ${location.column}`
+        `Unterminated regular expression literal at line ${loc.line}, column ${loc.column}`
       );
     }
   }
@@ -720,14 +768,28 @@ export default class Tokenizer {
       return;
     }
 
-    const location = this.getLocation();
+    const loc = this.getLocation();
     let value = "";
 
-    const wchar = this.currentChar + (this.peekChar() || "") + (this.peekChar(2) || "");
+    const twoChars = this.currentChar + (this.peekChar() || "");
+    const wchar = twoChars + (this.peekChar(2) || "");
     if (Tokenizer.OPERATOR.has(wchar) || Tokenizer.PUNCTUATOR.has(wchar)) {
       value = wchar;
+      if (this.peekChar() !== null) {
+        this.nextChar();
+
+        if (this.peekChar(2) !== null) {
+          this.nextChar();
+        }
+      }
+
       this.nextChar();
-      this.nextChar();
+    } else if (Tokenizer.OPERATOR.has(twoChars) || Tokenizer.PUNCTUATOR.has(twoChars)) {
+      value = twoChars;
+      if (this.peekChar() !== null) {
+        this.nextChar();
+      }
+  
       this.nextChar();
     } else if (
       Tokenizer.OPERATOR.has(this.currentChar) ||
@@ -739,23 +801,23 @@ export default class Tokenizer {
 
     if (value) {
       const type = Tokenizer.OPERATOR.has(value)
-        ? this.types.Operator
-        : this.types.Punctuator;
-      this.addToken(type, value, location);
+        ? TOKEN_TYPES.Operator
+        : TOKEN_TYPES.Punctuator;
+      this.addToken(type, value, loc);
     } else {
       throw new Error(
-        `Unexpected token: ${value} at line ${location.line}, column ${location.column}`
+        `Unexpected token: ${value} at line ${loc.line}, column ${loc.column}`
       );
     }
   }
 
   readComment() {
-    const location = this.getLocation();
+    const loc = this.getLocation();
     let value = "";
     let type = null;
 
     if (this.currentChar === "/" && this.peekChar() === "/") {
-      type = this.types.CommentLine;
+      type = TOKEN_TYPES.CommentLine;
       this.nextChar();
       this.nextChar();
 
@@ -764,7 +826,7 @@ export default class Tokenizer {
         this.nextChar();
       }
     } else if (this.currentChar === "/" && this.peekChar() === "*") {
-      type = this.types.CommentBlock;
+      type = TOKEN_TYPES.CommentBlock;
       this.nextChar();
       this.nextChar();
 
@@ -781,10 +843,10 @@ export default class Tokenizer {
     }
 
     if (value) {
-      this.addToken(type, value, location);
+      this.addToken(type, value, loc);
     } else {
       throw new Error(
-        `Unterminated comment at line ${location.line}, column ${location.column}`
+        `Unterminated comment at line ${loc.line}, column ${loc.column}`
       );
     }
   }
