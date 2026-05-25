@@ -17,6 +17,7 @@ export const TOKEN_TYPES = Object.freeze({
 
   // Identifiers
   Identifier: "Identifier",
+  PrivateIdentifier: "PrivateIdentifier",
 
   // Operators
   Operator: "Operator",
@@ -264,6 +265,11 @@ export default class Tokenizer {
 
       if (Tokenizer.OPERATOR.has(this.currentChar) || Tokenizer.PUNCTUATOR.has(this.currentChar)) {
         this.readOperatorOrPunctuator();
+        continue;
+      }
+
+      if (this.currentChar === "#") {
+        this.readPrivateIdentifier();
         continue;
       }
 
@@ -617,6 +623,11 @@ export default class Tokenizer {
             continue;
           }
 
+          if (this.currentChar === "#") {
+            this.readPrivateIdentifier();
+            continue;
+          }
+
           throw new Error(`Unexpected token: ${this.currentChar} at line ${this.line}, column ${this.column}`);
         }
 
@@ -748,6 +759,28 @@ export default class Tokenizer {
     } else {
       throw new Error(`Unexpected token: ${value} at line ${loc.line}, column ${loc.column}`);
     }
+  }
+
+  readPrivateIdentifier() {
+    const loc = this.getLocation();
+    let value = "";
+
+    this.nextChar();
+
+    if (!Tokenizer.ASCII_IDENTIFIER_START.has(this.currentChar)) {
+      throw new Error(`Invalid private identifier at line ${loc.line}, column ${loc.column}`);
+    }
+
+    while (this.currentChar !== null && Tokenizer.ASCII_IDENTIFIER.has(this.currentChar)) {
+      value += this.currentChar;
+      this.nextChar();
+    }
+
+    if (!value) {
+      throw new Error(`Invalid private identifier at line ${loc.line}, column ${loc.column}`);
+    }
+
+    this.addToken(TOKEN_TYPES.PrivateIdentifier, value, loc, this.createExtra(`#${value}`, value));
   }
 
   readComment() {
