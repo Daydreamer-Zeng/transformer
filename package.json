@@ -1,0 +1,27 @@
+{
+  "name": "transformer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {},
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Daydreamer-Zeng/transformer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Daydreamer-Zeng/transformer/issues"
+  },
+  "homepage": "https://github.com/Daydreamer-Zeng/transformer#readme",
+  "devDependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/preset-env": "^8.0.1",
+    "babel-jest": "^30.4.1",
+    "jest": "^30.4.2"
+  }
+}
