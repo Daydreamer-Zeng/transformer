@@ -171,7 +171,7 @@ export default class Parser {
   }
 
   createNode(type, startLoc, endLoc, properties = {}) {
-    return {
+    const node = {
       type,
       start: startLoc.index,
       end: endLoc.index,
@@ -181,6 +181,12 @@ export default class Parser {
       },
       ...properties
     };
+
+    if (type === NODE_TYPES.Identifier && properties.name) {
+      node.loc.identifierName = properties.name
+    }
+
+    return node;
   }
 
   match(type, value) {
@@ -1316,7 +1322,7 @@ export default class Parser {
     let ending;
 
     if (this.match(TOKEN_TYPES.Keyword, "function")) {
-      declaration = this.parseFunctionExpression(false);
+      declaration = this.parseFunctionExpression();
       declaration.type = NODE_TYPES.FunctionDeclaration;
       ending = declaration;
     } else if (this.match(TOKEN_TYPES.Keyword, "class")) {
@@ -1676,16 +1682,18 @@ export default class Parser {
   }
 
   parseMaybeAssign() {
-    const position = this.position;
-    if (this.tryConsumeToken(TOKEN_TYPES.Keyword, "async")) {
+    if (this.match(TOKEN_TYPES.Keyword, "async")) {
       if (this.shouldParseAsyncArrow()) {
-        return this.parseAsyncArrow();
+        return this.parseAsyncArrowFunction();
       }
-
-      this.repositionToken(position);
     }
 
     let left = this.parseMaybeConditional();
+
+    if (this.currentToken.type === TOKEN_TYPES.Operator && this.currentToken.value === "=>" && left.type === NODE_TYPES.Identifier) {
+      this.consumeToken(TOKEN_TYPES.Operator, "=>");
+      return this.parseArrowFunctionExpression(left.loc.start, [left]);
+    }
 
     if (this.currentToken.type === TOKEN_TYPES.Operator && Parser.ASSIGNMENT_OPS.has(this.currentToken.value)) {
       if (left.type === NODE_TYPES.ObjectExpression || left.type === NODE_TYPES.ArrayExpression) {
@@ -1706,14 +1714,41 @@ export default class Parser {
     return left;
   }
 
-  shouldParseAsyncArrow() {
-    if (this.tryConsumeToken(TOKEN_TYPES.Punctuator, "(")) {
-      let parenCount = 1;
-      let index = this.position;
-      const start = this.position;
-      const threshold = start + 1000; // Arbitrary threshold to prevent infinite loops in case of syntax errors
+  shouldParseAsyncArrow(idx = this.position, level = 2) {
+    const t = this.tokens[idx];
 
-      while (parenCount > 0 && index < threshold) {
+    if (level < 1 || !t) {
+      return false;
+    }
+
+    const peek = this.tokens[idx + 1];
+    if (!peek) {
+      return false;
+    }
+
+    if (t.type === TOKEN_TYPES.Keyword && t.value === "async") {
+      if (
+        peek.type === TOKEN_TYPES.Punctuator && peek.value === "(" ||
+        peek.type === TOKEN_TYPES.Identifier ||
+        peek.type === TOKEN_TYPES.Keyword
+      ) {
+        return this.shouldParseAsyncArrow(idx + 1, level - 1);
+      }
+
+      if (peek.type === TOKEN_TYPES.Operator && peek.value !== "=>") {
+        return false;
+      }
+
+      return this.allowedParseAsyncArrow(t, peek);
+    }
+
+    if (t.type === TOKEN_TYPES.Punctuator && t.value === "(") {
+      let parenCount = 1;
+      let index = idx + 1;
+      const start = idx + 1;
+      const lookahead = Math.min(this.tokens.length, start + 1000); // Arbitrary lookahead to prevent infinite loops in case of syntax errors
+
+      while (parenCount > 0 && index < lookahead) {
         const token = this.tokens[index];
 
         if (token.type === TOKEN_TYPES.Punctuator && token.value === "(") {
@@ -1756,7 +1791,7 @@ export default class Parser {
         if (token.type === TOKEN_TYPES.Identifier) {
           i++;
 
-          if (paramsTokens[i].type === TOKEN_TYPES.Operator && paramsTokens[i].value === ":") {
+          if (paramsTokens[i] && paramsTokens[i].type === TOKEN_TYPES.Operator && paramsTokens[i].value === ":") {
             i++;
 
             if (i < paramsTokens.length && paramsTokens[i].type === TOKEN_TYPES.Identifier) {
@@ -1764,13 +1799,14 @@ export default class Parser {
             }
           }
 
-          if (paramsTokens[i].type === TOKEN_TYPES.Operator && paramsTokens[i].value === "=") {
+          if (paramsTokens[i] && paramsTokens[i].type === TOKEN_TYPES.Operator && paramsTokens[i].value === "=") {
             i++;
 
             if (i < paramsTokens.length && paramsTokens[i].type === TOKEN_TYPES.Identifier) {
               i++;
             }
           }
+
           continue;
         }
 
@@ -1794,82 +1830,73 @@ export default class Parser {
       return true;
     }
 
-    if (this.currentToken.type === TOKEN_TYPES.Identifier) {
-      const token = this.currentToken;
-      const nextToken = this.peekToken();
-
-      if (nextToken.value === "yield") {
+    if (t.type === TOKEN_TYPES.Identifier) {
+      if (
+        peek.type === TOKEN_TYPES.Keyword && peek.value === "yield" ||
+        peek.type === TOKEN_TYPES.Keyword && peek.value === "await" ||
+        peek.type === TOKEN_TYPES.Operator && peek.value !== "=>"
+      ) {
         return false;
       }
 
-      if (nextToken.value === "await") {
-        return false;
-      }
-
-      if (nextToken.value !== "=>") {
-        return false;
-      }
-
-      if (token.loc.start.line !== nextToken.loc.start.line) {
-        return false;
-      }
-
-      if (nextToken.value === "arguments" && this.state.isStrictMode) {
-        return false;
-      }
-
-      if (nextToken.value === "eval" && this.state.isStrictMode) {
-        return false;
-      }
-
-      return true;
+      return this.allowedParseAsyncArrow(t, peek);
     }
 
     if (
-      this.currentToken.value === "lef" ||
-      this.currentToken.value === "static" ||
-      this.currentToken.value === "as" ||
-      this.currentToken.value === "from" ||
-      this.currentToken.value === "get" ||
-      this.currentToken.value === "set" ||
-      this.currentToken.value === "of" ||
-      this.currentToken.value === "implements" ||
-      this.currentToken.value === "interface" ||
-      this.currentToken.value === "package" ||
-      this.currentToken.value === "private" ||
-      this.currentToken.value === "protected" ||
-      this.currentToken.value === "public"
+      t.value === "let" ||
+      t.value === "static" ||
+      t.value === "as" ||
+      t.value === "from" ||
+      t.value === "get" ||
+      t.value === "set" ||
+      t.value === "of" ||
+      t.value === "implements" ||
+      t.value === "interface" ||
+      t.value === "package" ||
+      t.value === "private" ||
+      t.value === "protected" ||
+      t.value === "public"
     ) {
-      const token = this.currentToken;
-      const nextToken = this.peekToken();
-
-      if (nextToken.value !== "=>") {
+      if (peek.type === TOKEN_TYPES.Operator && peek.value !== "=>") {
         return false;
       }
 
-      if (token.loc.start.line !== nextToken.loc.start.line) {
-        return false;
-      }
-
-      if (nextToken.value === "arguments" && this.state.isStrictMode) {
-        return false;
-      }
-
-      if (nextToken.value === "eval" && this.state.isStrictMode) {
-        return false;
-      }
-
-      return true;
-    }
-
-    if (this.currentToken.value === "_" || this.currentToken.value === "$" || this.currentToken.value === "π") {
-      return this.peekToken().value === "=>";
+      return this.allowedParseAsyncArrow(t, peek);
     }
 
     return false;
   }
 
-  parseAsyncArrow() {}
+  allowedParseAsyncArrow(token1, token2) {
+    if (token1.loc.start.line !== token2.loc.start.line || token2.type === TOKEN_TYPES.EOF) {
+      return false;
+    }
+
+    if ((token2.value === "arguments" || token2.value === "eval") && this.state.isStrictMode) {
+      return false;
+    }
+
+    return true;
+  }
+
+  parseAsyncArrowFunction() {
+    const startLoc = this.consumeToken(TOKEN_TYPES.Keyword, "async").loc.start;
+
+    let isAsync = true;
+    let params = [];
+
+    if (this.match(TOKEN_TYPES.Punctuator, "(")) {
+      params = this.parseParamsStatement();
+    } else if (this.match(TOKEN_TYPES.Operator, "=>")) {
+      isAsync = false
+    } else {
+      params = [this.parseIdentifier()];
+    }
+
+    this.consumeToken(TOKEN_TYPES.Operator, "=>");
+
+    return this.parseArrowFunctionExpression(startLoc, params, isAsync);
+  }
 
   toAssignable(node) {
     switch (node.type) {
@@ -2300,6 +2327,9 @@ export default class Parser {
         case "import":
           return this.parseImportExpression();
 
+        case "async":
+          return this.parseAsyncExpression();
+
         default:
           return this.parseIdentifier();
       }
@@ -2362,7 +2392,7 @@ export default class Parser {
     );
   }
 
-  parseFunctionExpression(skipSemicolon = true) {
+  parseFunctionExpression() {
     const starting = this.tryConsumeToken(TOKEN_TYPES.Keyword, "async");
     const keyword = this.consumeToken(TOKEN_TYPES.Keyword, "function");
     const isGenerator = !!this.tryConsumeToken(TOKEN_TYPES.Operator, "*");
@@ -2377,11 +2407,9 @@ export default class Parser {
 
     const params = this.parseParamsStatement();
     const body = this.parseBlockStatement();
-    const semicolon = skipSemicolon && this.tryConsumeToken(TOKEN_TYPES.Punctuator, ";");
     const startLoc = starting ? starting.loc.start : keyword.loc.start;
-    const endLoc = semicolon ? semicolon.loc.end : body.loc.end;
 
-    return this.createNode(NODE_TYPES.FunctionExpression, startLoc, endLoc, {
+    return this.createNode(NODE_TYPES.FunctionExpression, startLoc, body.loc.end, {
       id,
       params,
       body,
@@ -2462,6 +2490,19 @@ export default class Parser {
     );
   }
 
+  parseAsyncExpression() {
+    if (this.shouldParseAsyncArrow()) {
+      return this.parseAsyncArrowFunction();
+    }
+
+    const peek = this.peekToken();
+    if (peek.type === TOKEN_TYPES.Keyword && peek.value === "function") {
+      return this.parseFunctionExpression();
+    }
+
+    return this.parseIdentifier();
+  }
+
   parseNumericLiteral() {
     const token = this.consumeToken(TOKEN_TYPES.NumericLiteral);
 
@@ -2495,11 +2536,13 @@ export default class Parser {
   parseRegExpLiteral() {}
 
   parseParenthesizedExpression() {
+    const startLoc = this.currentToken.loc.start;
+
     this.consumeToken(TOKEN_TYPES.Punctuator, "(");
 
     if (this.tryConsumeToken(TOKEN_TYPES.Punctuator, ")")) {
-      if (this.match(TOKEN_TYPES.Operator, "=>")) {
-        return this.parseArrowFunctionExpression([]);
+      if (this.tryConsumeToken(TOKEN_TYPES.Operator, "=>")) {
+        return this.parseArrowFunctionExpression(startLoc, []);
       }
 
       throw new SyntaxError(
@@ -2509,53 +2552,52 @@ export default class Parser {
 
     const expr = this.parseExpression();
     if (this.match(TOKEN_TYPES.Punctuator, ",")) {
-      const expressions = [expr];
+      const exprs = [expr];
 
       while (this.tryConsumeToken(TOKEN_TYPES.Punctuator, ",")) {
-        expressions.push(this.parseExpression());
+        exprs.push(this.parseExpression());
       }
 
       this.consumeToken(TOKEN_TYPES.Punctuator, ")");
 
-      if (this.match(TOKEN_TYPES.Operator, "=>")) {
-        return this.parseArrowFunctionExpression(expressions);
+      if (this.tryConsumeToken(TOKEN_TYPES.Operator, "=>")) {
+        return this.parseArrowFunctionExpression(startLoc, exprs);
       }
 
       return this.createNode(
         NODE_TYPES.SequenceExpression,
         expr.loc.start,
-        expressions[expressions.length - 1].loc.end,
+        exprs[exprs.length - 1].loc.end,
         {
-          expressions
+          expressions: exprs
         }
       );
     }
 
     this.consumeToken(TOKEN_TYPES.Punctuator, ")");
-    if (this.match(TOKEN_TYPES.Operator, "=>")) {
-      return this.parseArrowFunctionExpression([expr]);
+
+    if (this.tryConsumeToken(TOKEN_TYPES.Operator, "=>")) {
+      return this.parseArrowFunctionExpression(startLoc, [expr]);
     }
 
     return expr;
   }
 
-  parseArrowFunctionExpression(params) {
+  parseArrowFunctionExpression(startLoc, params, isAsync = false) {
     let body;
-    let expression;
+
     if (this.match(TOKEN_TYPES.Punctuator, "{")) {
       body = this.parseBlockStatement();
-      expression = false;
     } else {
       body = this.parseExpression();
-      expression = true;
     }
-
-    const startLoc = params.length > 0 ? params[0].loc.start : this.currentToken.loc.start;
 
     return this.createNode(NODE_TYPES.ArrowFunctionExpression, startLoc, body.loc.end, {
       params,
       body,
-      expression
+      id: null,
+      async: isAsync,
+      generator: false
     });
   }
 
