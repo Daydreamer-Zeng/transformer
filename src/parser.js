@@ -375,9 +375,11 @@ export default class Parser {
   parseVariableDeclarator(kind) {
     const id = this.parseBindingAtom();
     let init = null;
+    let endLoc = id.loc.end;
 
     if (this.tryConsumeToken(TOKEN_TYPES.Operator, "=")) {
       init = this.parseExpression();
+      endLoc = init.loc.end;
     }
 
     if (kind === "const" && !init) {
@@ -386,16 +388,14 @@ export default class Parser {
       );
     }
 
-    const ending = init || id;
-
-    return this.createNode(NODE_TYPES.VariableDeclarator, id.loc.start, ending.loc.end, {
+    return this.createNode(NODE_TYPES.VariableDeclarator, id.loc.start, endLoc, {
       id,
       init
     });
   }
 
-  parseFunctionDeclaration() {
-    const keyword = this.consumeToken(TOKEN_TYPES.Keyword, "function");
+  parseFunctionDeclaration(startLoc = this.currentToken.loc.start, isAsync = false) {
+    this.consumeToken(TOKEN_TYPES.Keyword, "function");
     const isGenerator = !!this.tryConsumeToken(TOKEN_TYPES.Operator, "*");
     const identifier = this.consumeToken(TOKEN_TYPES.Identifier);
     const id = this.createNode(NODE_TYPES.Identifier, identifier.loc.start, identifier.loc.end, {
@@ -404,12 +404,12 @@ export default class Parser {
     const params = this.parseParamsStatement();
     const body = this.parseBlockStatement();
 
-    return this.createNode(NODE_TYPES.FunctionDeclaration, keyword.loc.start, body.loc.end, {
+    return this.createNode(NODE_TYPES.FunctionDeclaration, startLoc, body.loc.end, {
       id,
       params,
       body,
       generator: isGenerator,
-      async: false
+      async: isAsync
     });
   }
 
@@ -487,28 +487,19 @@ export default class Parser {
   }
 
   parseAsyncDeclaration() {
-    const startIndex = this.position;
-    const starting = this.consumeToken(TOKEN_TYPES.Keyword, "async");
-    const keyword = this.tryConsumeToken(TOKEN_TYPES.Keyword, "function");
+    const pos = this.position;
+    const keyword = this.consumeToken(TOKEN_TYPES.Keyword, "async");
 
-    if (keyword && starting.loc.start.line === keyword.loc.start.line) {
-      const isGenerator = !!this.tryConsumeToken(TOKEN_TYPES.Operator, "*");
-      const identifier = this.consumeToken(TOKEN_TYPES.Identifier);
-      const params = this.parseParamsStatement();
-      const body = this.parseBlockStatement();
+    if (this.match(TOKEN_TYPES.Keyword, "function")) {
+      const token = this.currentToken;
 
-      return this.createNode(NODE_TYPES.FunctionDeclaration, starting.loc.start, body.loc.end, {
-        id: this.createNode(NODE_TYPES.Identifier, identifier.loc.start, identifier.loc.end, {
-          name: identifier.value
-        }),
-        params,
-        body,
-        generator: isGenerator,
-        async: true
-      });
+      if (keyword.loc.start.line === token.loc.start.line) {
+        return this.parseFunctionDeclaration(keyword.loc.start, true);
+      }
     }
 
-    this.repositionToken(startIndex);
+
+    this.repositionToken(pos);
     return this.parseExpressionStatement();
   }
 
@@ -1531,11 +1522,8 @@ export default class Parser {
   }
 
   parseBindingAtom() {
-    if (this.match(TOKEN_TYPES.Identifier)) {
-      const identifier = this.consumeToken(TOKEN_TYPES.Identifier);
-      return this.createNode(NODE_TYPES.Identifier, identifier.loc.start, identifier.loc.end, {
-        name: identifier.value
-      });
+    if (this.match(TOKEN_TYPES.Identifier) || this.match(TOKEN_TYPES.Keyword)) {
+      return this.parseIdentifier();
     }
 
     if (this.match(TOKEN_TYPES.Punctuator, "{")) {
@@ -1746,9 +1734,13 @@ export default class Parser {
         index++;
       }
 
+      if (parenCount > 0) {
+        return false;
+      }
+
       const nextToken = this.tokens[index];
 
-      if (nextToken.value !== "=>") {
+      if (!nextToken || nextToken.value !== "=>") {
         return false;
       }
 
@@ -1764,7 +1756,7 @@ export default class Parser {
 
       // Check for invalid tokens in parameters
       if (paramsTokens.length === 0) {
-        return false;
+        return true;
       }
 
       let i = 0;
@@ -1804,6 +1796,48 @@ export default class Parser {
 
           if (i < paramsTokens.length && paramsTokens[i].type === TOKEN_TYPES.Identifier) {
             i++;
+            continue;
+          }
+        }
+
+        if (token.type === TOKEN_TYPES.Punctuator && token.value === "{") {
+          i++;
+          let curlyBracketCount = 1;
+
+          while (i < paramsTokens.length && curlyBracketCount > 0) {
+            const target = paramsTokens[i];
+
+            if (target.type === TOKEN_TYPES.Punctuator && target.value === "{") {
+              curlyBracketCount++;
+            } else if (target.type === TOKEN_TYPES.Punctuator && target.value === "}") {
+              curlyBracketCount--;
+            }
+
+            i++;
+          }
+
+          if (curlyBracketCount === 0) {
+            continue;
+          }
+        }
+
+        if (token.type === TOKEN_TYPES.Punctuator && token.value === "[") {
+          i++;
+          let squareBracketCount = 1;
+
+          while (i < paramsTokens.length && squareBracketCount > 0) {
+            const target = paramsTokens[i];
+
+            if (target.type === TOKEN_TYPES.Punctuator && target.value === "[") {
+              squareBracketCount++;
+            } else if (target.type === TOKEN_TYPES.Punctuator && target.value === "]") {
+              squareBracketCount--;
+            }
+
+            i++;
+          }
+
+          if (squareBracketCount === 0) {
             continue;
           }
         }
