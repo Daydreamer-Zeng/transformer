@@ -1683,15 +1683,19 @@ export default class Parser {
 
   parseMaybeAssign() {
     if (this.match(TOKEN_TYPES.Keyword, "async")) {
+      const pos = this.position;
+      this.nextToken();
+
       if (this.shouldParseAsyncArrow()) {
-        return this.parseAsyncArrowFunction();
+        return this.parseAsyncArrow(this.tokens[pos].loc.start);
       }
+
+      this.repositionToken(pos);
     }
 
     let left = this.parseMaybeConditional();
 
-    if (this.currentToken.type === TOKEN_TYPES.Operator && this.currentToken.value === "=>" && left.type === NODE_TYPES.Identifier) {
-      this.consumeToken(TOKEN_TYPES.Operator, "=>");
+    if (left.type === NODE_TYPES.Identifier && this.tryConsumeToken(TOKEN_TYPES.Operator, "=>")) {
       return this.parseArrowFunctionExpression(left.loc.start, [left]);
     }
 
@@ -1714,32 +1718,12 @@ export default class Parser {
     return left;
   }
 
-  shouldParseAsyncArrow(idx = this.position, level = 2) {
+  shouldParseAsyncArrow() {
+    const idx = this.position;
     const t = this.tokens[idx];
 
-    if (level < 1 || !t) {
+    if (!t) {
       return false;
-    }
-
-    const peek = this.tokens[idx + 1];
-    if (!peek) {
-      return false;
-    }
-
-    if (t.type === TOKEN_TYPES.Keyword && t.value === "async") {
-      if (
-        peek.type === TOKEN_TYPES.Punctuator && peek.value === "(" ||
-        peek.type === TOKEN_TYPES.Identifier ||
-        peek.type === TOKEN_TYPES.Keyword
-      ) {
-        return this.shouldParseAsyncArrow(idx + 1, level - 1);
-      }
-
-      if (peek.type === TOKEN_TYPES.Operator && peek.value !== "=>") {
-        return false;
-      }
-
-      return this.allowedParseAsyncArrow(t, peek);
     }
 
     if (t.type === TOKEN_TYPES.Punctuator && t.value === "(") {
@@ -1830,11 +1814,15 @@ export default class Parser {
       return true;
     }
 
+    const peek = this.tokens[idx + 1];
+    if (!peek) {
+      return false;
+    }
+
     if (t.type === TOKEN_TYPES.Identifier) {
       if (
         peek.type === TOKEN_TYPES.Keyword && peek.value === "yield" ||
-        peek.type === TOKEN_TYPES.Keyword && peek.value === "await" ||
-        peek.type === TOKEN_TYPES.Operator && peek.value !== "=>"
+        peek.type === TOKEN_TYPES.Keyword && peek.value === "await"
       ) {
         return false;
       }
@@ -1857,10 +1845,6 @@ export default class Parser {
       t.value === "protected" ||
       t.value === "public"
     ) {
-      if (peek.type === TOKEN_TYPES.Operator && peek.value !== "=>") {
-        return false;
-      }
-
       return this.allowedParseAsyncArrow(t, peek);
     }
 
@@ -1868,6 +1852,10 @@ export default class Parser {
   }
 
   allowedParseAsyncArrow(token1, token2) {
+    if (token2.type === TOKEN_TYPES.Operator && token2.value !== "=>") {
+      return false;
+    }
+
     if (token1.loc.start.line !== token2.loc.start.line || token2.type === TOKEN_TYPES.EOF) {
       return false;
     }
@@ -1879,23 +1867,18 @@ export default class Parser {
     return true;
   }
 
-  parseAsyncArrowFunction() {
-    const startLoc = this.consumeToken(TOKEN_TYPES.Keyword, "async").loc.start;
-
-    let isAsync = true;
+  parseAsyncArrow(startLoc) {
     let params = [];
 
     if (this.match(TOKEN_TYPES.Punctuator, "(")) {
       params = this.parseParamsStatement();
-    } else if (this.match(TOKEN_TYPES.Operator, "=>")) {
-      isAsync = false
     } else {
       params = [this.parseIdentifier()];
     }
 
     this.consumeToken(TOKEN_TYPES.Operator, "=>");
 
-    return this.parseArrowFunctionExpression(startLoc, params, isAsync);
+    return this.parseArrowFunctionExpression(startLoc, params, true);
   }
 
   toAssignable(node) {
@@ -2328,7 +2311,17 @@ export default class Parser {
           return this.parseImportExpression();
 
         case "async":
-          return this.parseAsyncExpression();
+          const asyncToken = this.consumeToken(TOKEN_TYPES.Keyword, "async");
+
+          if (this.shouldParseAsyncArrow()) {
+            return this.parseAsyncArrow(asyncToken.loc.start);
+          }
+
+          if (this.match(TOKEN_TYPES.Keyword, "function")) {
+            return this.parseFunctionExpression(asyncToken.loc.start, true);
+          }
+
+          return this.parseIdentifier(asyncToken);
 
         default:
           return this.parseIdentifier();
@@ -2392,9 +2385,8 @@ export default class Parser {
     );
   }
 
-  parseFunctionExpression() {
-    const starting = this.tryConsumeToken(TOKEN_TYPES.Keyword, "async");
-    const keyword = this.consumeToken(TOKEN_TYPES.Keyword, "function");
+  parseFunctionExpression(startLoc = this.currentToken.loc.start, isAsync = false) {
+    this.consumeToken(TOKEN_TYPES.Keyword, "function");
     const isGenerator = !!this.tryConsumeToken(TOKEN_TYPES.Operator, "*");
     let id = null;
 
@@ -2407,14 +2399,13 @@ export default class Parser {
 
     const params = this.parseParamsStatement();
     const body = this.parseBlockStatement();
-    const startLoc = starting ? starting.loc.start : keyword.loc.start;
 
     return this.createNode(NODE_TYPES.FunctionExpression, startLoc, body.loc.end, {
       id,
       params,
       body,
       generator: isGenerator,
-      async: !!starting
+      async: isAsync
     });
   }
 
@@ -2490,19 +2481,6 @@ export default class Parser {
     );
   }
 
-  parseAsyncExpression() {
-    if (this.shouldParseAsyncArrow()) {
-      return this.parseAsyncArrowFunction();
-    }
-
-    const peek = this.peekToken();
-    if (peek.type === TOKEN_TYPES.Keyword && peek.value === "function") {
-      return this.parseFunctionExpression();
-    }
-
-    return this.parseIdentifier();
-  }
-
   parseNumericLiteral() {
     const token = this.consumeToken(TOKEN_TYPES.NumericLiteral);
 
@@ -2521,10 +2499,12 @@ export default class Parser {
     });
   }
 
-  parseIdentifier() {
-    const token = this.currentToken;
+  parseIdentifier(node) {
+    const token = node ?? this.currentToken;
 
-    this.nextToken();
+    if (!node) {
+      this.nextToken();
+    }
 
     return this.createNode(NODE_TYPES.Identifier, token.loc.start, token.loc.end, {
       name: token.value
