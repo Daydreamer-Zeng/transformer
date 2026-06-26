@@ -2,13 +2,13 @@ import fs from "fs";
 import path from "path";
 
 export function outputFile(data, filename, type = "txt") {
-  const dir = path.join(__dirname, "output");
+  const dir = path.join(__dirname, "dist");
 
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
   }
 
-  filename = `${filename}_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+  filename = `${filename}_${new Date().toISOString().replace(/[:.]/g, '-')}.${type}`;
 
   const filePath = path.join(dir, `${filename}.${type}`);
 
