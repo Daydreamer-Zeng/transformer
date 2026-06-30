@@ -2459,6 +2459,17 @@ export default class Parser {
   parseFunctionExpression(startLoc = this.currentToken.loc.start, isAsync = false) {
     this.consumeToken(TOKEN_TYPES.Keyword, "function");
     const isGenerator = !!this.tryConsumeToken(TOKEN_TYPES.Operator, "*");
+
+    const savedTopLevel = this.state.inTopLevel;
+    const savedFunction = this.state.inFunction;
+    const savedAsync = this.state.inAsync;
+    const savedGenerator = this.state.inGenerator;
+
+    this.state.inTopLevel = false;
+    this.state.inFunction = true;
+    this.state.inAsync = isAsync;
+    this.state.inGenerator = isGenerator;
+
     let id = null;
 
     if (this.match(TOKEN_TYPES.Identifier)) {
@@ -2470,6 +2481,11 @@ export default class Parser {
 
     const params = this.parseParamsStatement();
     const body = this.parseBlockStatement();
+
+    this.state.inTopLevel = savedTopLevel;
+    this.state.inFunction = savedFunction;
+    this.state.inAsync = savedAsync;
+    this.state.inGenerator = savedGenerator;
 
     return this.createNode(NODE_TYPES.FunctionExpression, startLoc, body.loc.end, {
       id,
