@@ -85,14 +85,7 @@ export const NODE_TYPES = Object.freeze({
 
 export default class Parser {
   constructor(options = {}) {
-    this.tokens = [];
-    this.position = 0;
-    this.currentToken = null;
     this.options = options;
-    this.comments = [];
-    this.leadingComments = [];
-    this.trailingComments = [];
-    this.errors = [];
   }
 
   // prettier-ignore
@@ -126,6 +119,8 @@ export default class Parser {
     this.position = 0;
     this.currentToken = tokens[0] || null;
     this.state = {
+      isModule: this.options.sourceType === "module",
+      inTopLevel: false,
       isStrictMode: false,
       inFunction: false,
       inArrowFunction: false,
@@ -138,6 +133,8 @@ export default class Parser {
     this.leadingComments = [];
     this.trailingComments = [];
     this.errors = [];
+
+    this.state.inTopLevel = true;
 
     this.parseComments();
 
@@ -162,6 +159,8 @@ export default class Parser {
       body,
       directives: []
     });
+
+    this.state.inTopLevel = false;
 
     return this.createNode(NODE_TYPES.File, startLoc, endLoc, {
       program,
@@ -236,6 +235,14 @@ export default class Parser {
     }
 
     return false;
+  }
+
+  isAwait() {
+    if (this.state.isModule && this.state.inTopLevel) {
+      return true;
+    } else {
+      return this.state.inAsync;
+    }
   }
 
   parseComments() {
@@ -397,12 +404,28 @@ export default class Parser {
   parseFunctionDeclaration(startLoc = this.currentToken.loc.start, isAsync = false) {
     this.consumeToken(TOKEN_TYPES.Keyword, "function");
     const isGenerator = !!this.tryConsumeToken(TOKEN_TYPES.Operator, "*");
+
+    const savedTopLevel = this.state.inTopLevel;
+    const savedFunction = this.state.inFunction;
+    const savedAsync = this.state.inAsync;
+    const savedGenerator = this.state.inGenerator;
+
+    this.state.inTopLevel = false;
+    this.state.inFunction = true;
+    this.state.inAsync = isAsync;
+    this.state.inGenerator = isGenerator;
+
     const identifier = this.consumeToken(TOKEN_TYPES.Identifier);
     const id = this.createNode(NODE_TYPES.Identifier, identifier.loc.start, identifier.loc.end, {
       name: identifier.value
     });
     const params = this.parseParamsStatement();
     const body = this.parseBlockStatement();
+
+    this.state.inTopLevel = savedTopLevel;
+    this.state.inFunction = savedFunction;
+    this.state.inAsync = savedAsync;
+    this.state.inGenerator = savedGenerator;
 
     return this.createNode(NODE_TYPES.FunctionDeclaration, startLoc, body.loc.end, {
       id,
@@ -503,16 +526,6 @@ export default class Parser {
     return this.parseExpressionStatement();
   }
 
-  parseAwaitExpression() {
-    const token = this.currentToken;
-    this.nextToken();
-    const argument = this.parseMaybeUnary();
-
-    return this.createNode(NODE_TYPES.AwaitExpression, token.loc.start, argument.loc.end, {
-      argument
-    });
-  }
-
   parseIfStatement() {
     const keyword = this.consumeToken(TOKEN_TYPES.Keyword, "if");
     const test = this.parseParenthesizedExpression();
@@ -593,6 +606,11 @@ export default class Parser {
   parseForStatement() {
     this.state.inForInit = true;
     const keyword = this.consumeToken(TOKEN_TYPES.Keyword, "for");
+    let isAwait = false;
+
+    if (this.tryConsumeToken(TOKEN_TYPES.Keyword, "await")) {
+      isAwait = true;
+    }
 
     this.consumeToken(TOKEN_TYPES.Punctuator, "(");
 
@@ -613,6 +631,12 @@ export default class Parser {
 
     // for...in
     if (this.match(TOKEN_TYPES.Keyword, "in")) {
+      if (isAwait) {
+        throw new SyntaxError(
+          `Unexpected token: ${this.currentToken.value} at line ${this.currentToken.loc.start.line}, column ${this.currentToken.loc.start.column}`
+        );
+      }
+
       this.validateForInOfLeft(init, "in");
       this.consumeToken(TOKEN_TYPES.Keyword, "in");
 
@@ -629,7 +653,7 @@ export default class Parser {
       });
     }
 
-    // for...of
+    // for...of/for await...of
     if (this.match(TOKEN_TYPES.Keyword, "of")) {
       this.validateForInOfLeft(init, "of");
       this.consumeToken(TOKEN_TYPES.Keyword, "of");
@@ -641,6 +665,7 @@ export default class Parser {
       const body = this.parseBlockStatement();
 
       return this.createNode(NODE_TYPES.ForOfStatement, keyword.loc.start, body.loc.end, {
+        await: isAwait,
         left: init,
         right,
         body
@@ -845,8 +870,21 @@ export default class Parser {
   parseClassDeclaration(type = NODE_TYPES.ClassDeclaration) {
     const keyword = this.consumeToken(TOKEN_TYPES.Keyword, "class");
 
+    const savedTopLevel = this.state.inTopLevel;
+    const savedClass = this.state.inClass;
+    const savedAsync = this.state.inAsync;
+    const savedFunction = this.state.inFunction;
+    const savedGenerator = this.state.inGenerator;
+
+    this.state.inClass = true;
+    this.state.inFunction = false;
+    this.state.inAsync = false;
+    this.state.inGenerator = false;
+
     let id = null;
     if (this.match(TOKEN_TYPES.Identifier)) {
+      this.state.inTopLevel = false;
+
       const identifier = this.consumeToken(TOKEN_TYPES.Identifier);
       id = this.createNode(NODE_TYPES.Identifier, identifier.loc.start, identifier.loc.end, {
         name: identifier.value
@@ -861,6 +899,12 @@ export default class Parser {
     }
 
     const body = this.parseClassBody();
+
+    this.state.inTopLevel = savedTopLevel;
+    this.state.inClass = savedClass;
+    this.state.inFunction = savedFunction;
+    this.state.inAsync = savedAsync;
+    this.state.inGenerator = savedGenerator;
 
     return this.createNode(type, keyword.loc.start, body.loc.end, {
       id,
@@ -1802,42 +1846,42 @@ export default class Parser {
 
         if (token.type === TOKEN_TYPES.Punctuator && token.value === "{") {
           i++;
-          let curlyBracketCount = 1;
+          let bracketCount = 1;
 
-          while (i < paramsTokens.length && curlyBracketCount > 0) {
+          while (i < paramsTokens.length && bracketCount > 0) {
             const target = paramsTokens[i];
 
             if (target.type === TOKEN_TYPES.Punctuator && target.value === "{") {
-              curlyBracketCount++;
+              bracketCount++;
             } else if (target.type === TOKEN_TYPES.Punctuator && target.value === "}") {
-              curlyBracketCount--;
+              bracketCount--;
             }
-
+            
             i++;
           }
 
-          if (curlyBracketCount === 0) {
+          if (bracketCount === 0) {
             continue;
           }
         }
 
         if (token.type === TOKEN_TYPES.Punctuator && token.value === "[") {
           i++;
-          let squareBracketCount = 1;
+          let bracketCount = 1;
 
-          while (i < paramsTokens.length && squareBracketCount > 0) {
+          while (i < paramsTokens.length && bracketCount > 0) {
             const target = paramsTokens[i];
 
             if (target.type === TOKEN_TYPES.Punctuator && target.value === "[") {
-              squareBracketCount++;
+              bracketCount++;
             } else if (target.type === TOKEN_TYPES.Punctuator && target.value === "]") {
-              squareBracketCount--;
+              bracketCount--;
             }
 
             i++;
           }
 
-          if (squareBracketCount === 0) {
+          if (bracketCount === 0) {
             continue;
           }
         }
@@ -2345,17 +2389,10 @@ export default class Parser {
           return this.parseImportExpression();
 
         case "async":
-          const asyncToken = this.consumeToken(TOKEN_TYPES.Keyword, "async");
+          return this.parseAsyncExpression();
 
-          if (this.shouldParseAsyncArrow()) {
-            return this.parseAsyncArrow(asyncToken.loc.start);
-          }
-
-          if (this.match(TOKEN_TYPES.Keyword, "function")) {
-            return this.parseFunctionExpression(asyncToken.loc.start, true);
-          }
-
-          return this.parseIdentifier(asyncToken);
+        case "await":
+          return this.parseAwaitExpression();
 
         default:
           return this.parseIdentifier();
@@ -2440,6 +2477,35 @@ export default class Parser {
       body,
       generator: isGenerator,
       async: isAsync
+    });
+  }
+
+  parseAsyncExpression() {
+    const keyword = this.consumeToken(TOKEN_TYPES.Keyword, "async");
+
+    if (this.shouldParseAsyncArrow()) {
+      return this.parseAsyncArrow(keyword.loc.start);
+    }
+
+    if (this.match(TOKEN_TYPES.Keyword, "function")) {
+      return this.parseFunctionExpression(keyword.loc.start, true);
+    }
+
+    return this.parseIdentifier(keyword);
+  }
+
+  parseAwaitExpression() {
+    const token = this.currentToken;
+    this.nextToken();
+
+    if (!this.isAwait()) {
+      throw new SyntaxError(`Unexpected reserved word 'await' at line ${token.loc.start.line}, column ${token.loc.start.column}`);
+    }
+
+    const argument = this.parseMaybeUnary();
+
+    return this.createNode(NODE_TYPES.AwaitExpression, token.loc.start, argument.loc.end, {
+      argument
     });
   }
 
@@ -2600,11 +2666,26 @@ export default class Parser {
   parseArrowFunctionExpression(startLoc, params, isAsync = false) {
     let body;
 
+    const savedTopLevel = this.state.inTopLevel;
+    const savedFunction = this.state.inFunction;
+    const savedAsync = this.state.inAsync;
+    const savedGenerator = this.state.inGenerator;
+
+    this.state.inTopLevel = false;
+    this.state.inFunction = true;
+    this.state.inAsync = isAsync;
+    this.state.inGenerator = false;
+
     if (this.match(TOKEN_TYPES.Punctuator, "{")) {
       body = this.parseBlockStatement();
     } else {
       body = this.parseExpression();
     }
+
+    this.state.inTopLevel = savedTopLevel;
+    this.state.inFunction = savedFunction;
+    this.state.inAsync = savedAsync;
+    this.state.inGenerator = savedGenerator;
 
     return this.createNode(NODE_TYPES.ArrowFunctionExpression, startLoc, body.loc.end, {
       params,
@@ -2767,8 +2848,23 @@ export default class Parser {
   }
 
   parseObjectMethod(key, kind, startLoc, isAsync = false, isGenerator = false, isComputed = false) {
+    const savedTopLevel = this.state.inTopLevel;
+    const savedFunction = this.state.inFunction;
+    const savedAsync = this.state.inAsync;
+    const savedGenerator = this.state.inGenerator;
+
+    this.state.inTopLevel = false;
+    this.state.inFunction = true;
+    this.state.inAsync = isAsync;
+    this.state.inGenerator = isGenerator;
+    
     const params = this.parseParamsStatement();
     const body = this.parseBlockStatement();
+
+    this.state.inTopLevel = savedTopLevel;
+    this.state.inFunction = savedFunction;
+    this.state.inAsync = savedAsync;
+    this.state.inGenerator = savedGenerator;
 
     return this.createNode(NODE_TYPES.ObjectMethod, startLoc, body.loc.end, {
       key,

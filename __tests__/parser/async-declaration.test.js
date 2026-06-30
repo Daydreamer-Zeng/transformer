@@ -14,8 +14,10 @@ async () => {
   console.log(value);
 }
 const foo1 = async (...args) => {};
-const foo2 = async ({x, y}) => {};
+const foo2 = async ({x: xx, y}, [a, b]) => {};
+const foo3 = async () => await something;
 const foo4 = async x => x + 1;
+const foo5 = async ([...aaa]) => {};
 const obj = {
   foo: async function() {}
 };`;
@@ -24,7 +26,7 @@ const obj = {
       const expected = {
         "type": "File",
         "start": 0,
-        "end": 297,
+        "end": 388,
         "loc": {
           "start": {
             "line": 1,
@@ -32,16 +34,16 @@ const obj = {
             "index": 0
           },
           "end": {
-            "line": 15,
+            "line": 17,
             "column": 2,
-            "index": 297
+            "index": 388
           }
         },
         "errors": [],
         "program": {
           "type": "Program",
           "start": 0,
-          "end": 297,
+          "end": 388,
           "loc": {
             "start": {
               "line": 1,
@@ -49,9 +51,9 @@ const obj = {
               "index": 0
             },
             "end": {
-              "line": 15,
+              "line": 17,
               "column": 2,
-              "index": 297
+              "index": 388
             }
           },
           "sourceType": "module",
@@ -743,7 +745,7 @@ const obj = {
             {
               "type": "VariableDeclaration",
               "start": 188,
-              "end": 222,
+              "end": 234,
               "loc": {
                 "start": {
                   "line": 11,
@@ -752,15 +754,15 @@ const obj = {
                 },
                 "end": {
                   "line": 11,
-                  "column": 34,
-                  "index": 222
+                  "column": 46,
+                  "index": 234
                 }
               },
               "declarations": [
                 {
                   "type": "VariableDeclarator",
                   "start": 194,
-                  "end": 221,
+                  "end": 233,
                   "loc": {
                     "start": {
                       "line": 11,
@@ -769,8 +771,8 @@ const obj = {
                     },
                     "end": {
                       "line": 11,
-                      "column": 33,
-                      "index": 221
+                      "column": 45,
+                      "index": 233
                     }
                   },
                   "id": {
@@ -795,7 +797,7 @@ const obj = {
                   "init": {
                     "type": "ArrowFunctionExpression",
                     "start": 201,
-                    "end": 221,
+                    "end": 233,
                     "loc": {
                       "start": {
                         "line": 11,
@@ -804,8 +806,8 @@ const obj = {
                       },
                       "end": {
                         "line": 11,
-                        "column": 33,
-                        "index": 221
+                        "column": 45,
+                        "index": 233
                       }
                     },
                     "id": null,
@@ -815,7 +817,7 @@ const obj = {
                       {
                         "type": "ObjectPattern",
                         "start": 208,
-                        "end": 214,
+                        "end": 218,
                         "loc": {
                           "start": {
                             "line": 11,
@@ -824,15 +826,15 @@ const obj = {
                           },
                           "end": {
                             "line": 11,
-                            "column": 26,
-                            "index": 214
+                            "column": 30,
+                            "index": 218
                           }
                         },
                         "properties": [
                           {
                             "type": "ObjectProperty",
                             "start": 209,
-                            "end": 210,
+                            "end": 214,
                             "loc": {
                               "start": {
                                 "line": 11,
@@ -841,8 +843,8 @@ const obj = {
                               },
                               "end": {
                                 "line": 11,
-                                "column": 22,
-                                "index": 210
+                                "column": 26,
+                                "index": 214
                               }
                             },
                             "method": false,
@@ -866,51 +868,11 @@ const obj = {
                               "name": "x"
                             },
                             "computed": false,
-                            "shorthand": true,
+                            "shorthand": false,
                             "value": {
                               "type": "Identifier",
-                              "start": 209,
-                              "end": 210,
-                              "loc": {
-                                "start": {
-                                  "line": 11,
-                                  "column": 21,
-                                  "index": 209
-                                },
-                                "end": {
-                                  "line": 11,
-                                  "column": 22,
-                                  "index": 210
-                                },
-                                "identifierName": "x"
-                              },
-                              "name": "x"
-                            },
-                            "extra": {
-                              "shorthand": true
-                            }
-                          },
-                          {
-                            "type": "ObjectProperty",
-                            "start": 212,
-                            "end": 213,
-                            "loc": {
-                              "start": {
-                                "line": 11,
-                                "column": 24,
-                                "index": 212
-                              },
-                              "end": {
-                                "line": 11,
-                                "column": 25,
-                                "index": 213
-                              }
-                            },
-                            "method": false,
-                            "key": {
-                              "type": "Identifier",
                               "start": 212,
-                              "end": 213,
+                              "end": 214,
                               "loc": {
                                 "start": {
                                   "line": 11,
@@ -919,8 +881,45 @@ const obj = {
                                 },
                                 "end": {
                                   "line": 11,
-                                  "column": 25,
-                                  "index": 213
+                                  "column": 26,
+                                  "index": 214
+                                },
+                                "identifierName": "xx"
+                              },
+                              "name": "xx"
+                            }
+                          },
+                          {
+                            "type": "ObjectProperty",
+                            "start": 216,
+                            "end": 217,
+                            "loc": {
+                              "start": {
+                                "line": 11,
+                                "column": 28,
+                                "index": 216
+                              },
+                              "end": {
+                                "line": 11,
+                                "column": 29,
+                                "index": 217
+                              }
+                            },
+                            "method": false,
+                            "key": {
+                              "type": "Identifier",
+                              "start": 216,
+                              "end": 217,
+                              "loc": {
+                                "start": {
+                                  "line": 11,
+                                  "column": 28,
+                                  "index": 216
+                                },
+                                "end": {
+                                  "line": 11,
+                                  "column": 29,
+                                  "index": 217
                                 },
                                 "identifierName": "y"
                               },
@@ -930,18 +929,18 @@ const obj = {
                             "shorthand": true,
                             "value": {
                               "type": "Identifier",
-                              "start": 212,
-                              "end": 213,
+                              "start": 216,
+                              "end": 217,
                               "loc": {
                                 "start": {
                                   "line": 11,
-                                  "column": 24,
-                                  "index": 212
+                                  "column": 28,
+                                  "index": 216
                                 },
                                 "end": {
                                   "line": 11,
-                                  "column": 25,
-                                  "index": 213
+                                  "column": 29,
+                                  "index": 217
                                 },
                                 "identifierName": "y"
                               },
@@ -952,22 +951,79 @@ const obj = {
                             }
                           }
                         ]
+                      },
+                      {
+                        "type": "ArrayPattern",
+                        "start": 220,
+                        "end": 226,
+                        "loc": {
+                          "start": {
+                            "line": 11,
+                            "column": 32,
+                            "index": 220
+                          },
+                          "end": {
+                            "line": 11,
+                            "column": 38,
+                            "index": 226
+                          }
+                        },
+                        "elements": [
+                          {
+                            "type": "Identifier",
+                            "start": 221,
+                            "end": 222,
+                            "loc": {
+                              "start": {
+                                "line": 11,
+                                "column": 33,
+                                "index": 221
+                              },
+                              "end": {
+                                "line": 11,
+                                "column": 34,
+                                "index": 222
+                              },
+                              "identifierName": "a"
+                            },
+                            "name": "a"
+                          },
+                          {
+                            "type": "Identifier",
+                            "start": 224,
+                            "end": 225,
+                            "loc": {
+                              "start": {
+                                "line": 11,
+                                "column": 36,
+                                "index": 224
+                              },
+                              "end": {
+                                "line": 11,
+                                "column": 37,
+                                "index": 225
+                              },
+                              "identifierName": "b"
+                            },
+                            "name": "b"
+                          }
+                        ]
                       }
                     ],
                     "body": {
                       "type": "BlockStatement",
-                      "start": 219,
-                      "end": 221,
+                      "start": 231,
+                      "end": 233,
                       "loc": {
                         "start": {
                           "line": 11,
-                          "column": 31,
-                          "index": 219
+                          "column": 43,
+                          "index": 231
                         },
                         "end": {
                           "line": 11,
-                          "column": 33,
-                          "index": 221
+                          "column": 45,
+                          "index": 233
                         }
                       },
                       "body": [],
@@ -980,51 +1036,164 @@ const obj = {
             },
             {
               "type": "VariableDeclaration",
-              "start": 223,
-              "end": 253,
+              "start": 235,
+              "end": 276,
               "loc": {
                 "start": {
                   "line": 12,
                   "column": 0,
-                  "index": 223
+                  "index": 235
                 },
                 "end": {
                   "line": 12,
-                  "column": 30,
-                  "index": 253
+                  "column": 41,
+                  "index": 276
                 }
               },
               "declarations": [
                 {
                   "type": "VariableDeclarator",
-                  "start": 229,
-                  "end": 252,
+                  "start": 241,
+                  "end": 275,
                   "loc": {
                     "start": {
                       "line": 12,
                       "column": 6,
-                      "index": 229
+                      "index": 241
                     },
                     "end": {
                       "line": 12,
-                      "column": 29,
-                      "index": 252
+                      "column": 40,
+                      "index": 275
                     }
                   },
                   "id": {
                     "type": "Identifier",
-                    "start": 229,
-                    "end": 233,
+                    "start": 241,
+                    "end": 245,
                     "loc": {
                       "start": {
                         "line": 12,
                         "column": 6,
-                        "index": 229
+                        "index": 241
                       },
                       "end": {
                         "line": 12,
                         "column": 10,
-                        "index": 233
+                        "index": 245
+                      },
+                      "identifierName": "foo3"
+                    },
+                    "name": "foo3"
+                  },
+                  "init": {
+                    "type": "ArrowFunctionExpression",
+                    "start": 248,
+                    "end": 275,
+                    "loc": {
+                      "start": {
+                        "line": 12,
+                        "column": 13,
+                        "index": 248
+                      },
+                      "end": {
+                        "line": 12,
+                        "column": 40,
+                        "index": 275
+                      }
+                    },
+                    "id": null,
+                    "generator": false,
+                    "async": true,
+                    "params": [],
+                    "body": {
+                      "type": "AwaitExpression",
+                      "start": 260,
+                      "end": 275,
+                      "loc": {
+                        "start": {
+                          "line": 12,
+                          "column": 25,
+                          "index": 260
+                        },
+                        "end": {
+                          "line": 12,
+                          "column": 40,
+                          "index": 275
+                        }
+                      },
+                      "argument": {
+                        "type": "Identifier",
+                        "start": 266,
+                        "end": 275,
+                        "loc": {
+                          "start": {
+                            "line": 12,
+                            "column": 31,
+                            "index": 266
+                          },
+                          "end": {
+                            "line": 12,
+                            "column": 40,
+                            "index": 275
+                          },
+                          "identifierName": "something"
+                        },
+                        "name": "something"
+                      }
+                    }
+                  }
+                }
+              ],
+              "kind": "const"
+            },
+            {
+              "type": "VariableDeclaration",
+              "start": 277,
+              "end": 307,
+              "loc": {
+                "start": {
+                  "line": 13,
+                  "column": 0,
+                  "index": 277
+                },
+                "end": {
+                  "line": 13,
+                  "column": 30,
+                  "index": 307
+                }
+              },
+              "declarations": [
+                {
+                  "type": "VariableDeclarator",
+                  "start": 283,
+                  "end": 306,
+                  "loc": {
+                    "start": {
+                      "line": 13,
+                      "column": 6,
+                      "index": 283
+                    },
+                    "end": {
+                      "line": 13,
+                      "column": 29,
+                      "index": 306
+                    }
+                  },
+                  "id": {
+                    "type": "Identifier",
+                    "start": 283,
+                    "end": 287,
+                    "loc": {
+                      "start": {
+                        "line": 13,
+                        "column": 6,
+                        "index": 283
+                      },
+                      "end": {
+                        "line": 13,
+                        "column": 10,
+                        "index": 287
                       },
                       "identifierName": "foo4"
                     },
@@ -1032,18 +1201,18 @@ const obj = {
                   },
                   "init": {
                     "type": "ArrowFunctionExpression",
-                    "start": 236,
-                    "end": 252,
+                    "start": 290,
+                    "end": 306,
                     "loc": {
                       "start": {
-                        "line": 12,
+                        "line": 13,
                         "column": 13,
-                        "index": 236
+                        "index": 290
                       },
                       "end": {
-                        "line": 12,
+                        "line": 13,
                         "column": 29,
-                        "index": 252
+                        "index": 306
                       }
                     },
                     "id": null,
@@ -1052,18 +1221,18 @@ const obj = {
                     "params": [
                       {
                         "type": "Identifier",
-                        "start": 242,
-                        "end": 243,
+                        "start": 296,
+                        "end": 297,
                         "loc": {
                           "start": {
-                            "line": 12,
+                            "line": 13,
                             "column": 19,
-                            "index": 242
+                            "index": 296
                           },
                           "end": {
-                            "line": 12,
+                            "line": 13,
                             "column": 20,
-                            "index": 243
+                            "index": 297
                           },
                           "identifierName": "x"
                         },
@@ -1072,34 +1241,34 @@ const obj = {
                     ],
                     "body": {
                       "type": "BinaryExpression",
-                      "start": 247,
-                      "end": 252,
+                      "start": 301,
+                      "end": 306,
                       "loc": {
                         "start": {
-                          "line": 12,
+                          "line": 13,
                           "column": 24,
-                          "index": 247
+                          "index": 301
                         },
                         "end": {
-                          "line": 12,
+                          "line": 13,
                           "column": 29,
-                          "index": 252
+                          "index": 306
                         }
                       },
                       "left": {
                         "type": "Identifier",
-                        "start": 247,
-                        "end": 248,
+                        "start": 301,
+                        "end": 302,
                         "loc": {
                           "start": {
-                            "line": 12,
+                            "line": 13,
                             "column": 24,
-                            "index": 247
+                            "index": 301
                           },
                           "end": {
-                            "line": 12,
+                            "line": 13,
                             "column": 25,
-                            "index": 248
+                            "index": 302
                           },
                           "identifierName": "x"
                         },
@@ -1108,18 +1277,18 @@ const obj = {
                       "operator": "+",
                       "right": {
                         "type": "NumericLiteral",
-                        "start": 251,
-                        "end": 252,
+                        "start": 305,
+                        "end": 306,
                         "loc": {
                           "start": {
-                            "line": 12,
+                            "line": 13,
                             "column": 28,
-                            "index": 251
+                            "index": 305
                           },
                           "end": {
-                            "line": 12,
+                            "line": 13,
                             "column": 29,
-                            "index": 252
+                            "index": 306
                           }
                         },
                         "extra": {
@@ -1136,51 +1305,203 @@ const obj = {
             },
             {
               "type": "VariableDeclaration",
-              "start": 254,
-              "end": 297,
+              "start": 308,
+              "end": 344,
               "loc": {
                 "start": {
-                  "line": 13,
+                  "line": 14,
                   "column": 0,
-                  "index": 254
+                  "index": 308
                 },
                 "end": {
-                  "line": 15,
-                  "column": 2,
-                  "index": 297
+                  "line": 14,
+                  "column": 36,
+                  "index": 344
                 }
               },
               "declarations": [
                 {
                   "type": "VariableDeclarator",
-                  "start": 260,
-                  "end": 296,
+                  "start": 314,
+                  "end": 343,
                   "loc": {
                     "start": {
-                      "line": 13,
+                      "line": 14,
                       "column": 6,
-                      "index": 260
+                      "index": 314
                     },
                     "end": {
-                      "line": 15,
-                      "column": 1,
-                      "index": 296
+                      "line": 14,
+                      "column": 35,
+                      "index": 343
                     }
                   },
                   "id": {
                     "type": "Identifier",
-                    "start": 260,
-                    "end": 263,
+                    "start": 314,
+                    "end": 318,
                     "loc": {
                       "start": {
-                        "line": 13,
+                        "line": 14,
                         "column": 6,
-                        "index": 260
+                        "index": 314
                       },
                       "end": {
-                        "line": 13,
+                        "line": 14,
+                        "column": 10,
+                        "index": 318
+                      },
+                      "identifierName": "foo5"
+                    },
+                    "name": "foo5"
+                  },
+                  "init": {
+                    "type": "ArrowFunctionExpression",
+                    "start": 321,
+                    "end": 343,
+                    "loc": {
+                      "start": {
+                        "line": 14,
+                        "column": 13,
+                        "index": 321
+                      },
+                      "end": {
+                        "line": 14,
+                        "column": 35,
+                        "index": 343
+                      }
+                    },
+                    "id": null,
+                    "generator": false,
+                    "async": true,
+                    "params": [
+                      {
+                        "type": "ArrayPattern",
+                        "start": 328,
+                        "end": 336,
+                        "loc": {
+                          "start": {
+                            "line": 14,
+                            "column": 20,
+                            "index": 328
+                          },
+                          "end": {
+                            "line": 14,
+                            "column": 28,
+                            "index": 336
+                          }
+                        },
+                        "elements": [
+                          {
+                            "type": "RestElement",
+                            "start": 329,
+                            "end": 335,
+                            "loc": {
+                              "start": {
+                                "line": 14,
+                                "column": 21,
+                                "index": 329
+                              },
+                              "end": {
+                                "line": 14,
+                                "column": 27,
+                                "index": 335
+                              }
+                            },
+                            "argument": {
+                              "type": "Identifier",
+                              "start": 332,
+                              "end": 335,
+                              "loc": {
+                                "start": {
+                                  "line": 14,
+                                  "column": 24,
+                                  "index": 332
+                                },
+                                "end": {
+                                  "line": 14,
+                                  "column": 27,
+                                  "index": 335
+                                },
+                                "identifierName": "aaa"
+                              },
+                              "name": "aaa"
+                            }
+                          }
+                        ]
+                      }
+                    ],
+                    "body": {
+                      "type": "BlockStatement",
+                      "start": 341,
+                      "end": 343,
+                      "loc": {
+                        "start": {
+                          "line": 14,
+                          "column": 33,
+                          "index": 341
+                        },
+                        "end": {
+                          "line": 14,
+                          "column": 35,
+                          "index": 343
+                        }
+                      },
+                      "body": [],
+                      "directives": []
+                    }
+                  }
+                }
+              ],
+              "kind": "const"
+            },
+            {
+              "type": "VariableDeclaration",
+              "start": 345,
+              "end": 388,
+              "loc": {
+                "start": {
+                  "line": 15,
+                  "column": 0,
+                  "index": 345
+                },
+                "end": {
+                  "line": 17,
+                  "column": 2,
+                  "index": 388
+                }
+              },
+              "declarations": [
+                {
+                  "type": "VariableDeclarator",
+                  "start": 351,
+                  "end": 387,
+                  "loc": {
+                    "start": {
+                      "line": 15,
+                      "column": 6,
+                      "index": 351
+                    },
+                    "end": {
+                      "line": 17,
+                      "column": 1,
+                      "index": 387
+                    }
+                  },
+                  "id": {
+                    "type": "Identifier",
+                    "start": 351,
+                    "end": 354,
+                    "loc": {
+                      "start": {
+                        "line": 15,
+                        "column": 6,
+                        "index": 351
+                      },
+                      "end": {
+                        "line": 15,
                         "column": 9,
-                        "index": 263
+                        "index": 354
                       },
                       "identifierName": "obj"
                     },
@@ -1188,52 +1509,52 @@ const obj = {
                   },
                   "init": {
                     "type": "ObjectExpression",
-                    "start": 266,
-                    "end": 296,
+                    "start": 357,
+                    "end": 387,
                     "loc": {
                       "start": {
-                        "line": 13,
+                        "line": 15,
                         "column": 12,
-                        "index": 266
+                        "index": 357
                       },
                       "end": {
-                        "line": 15,
+                        "line": 17,
                         "column": 1,
-                        "index": 296
+                        "index": 387
                       }
                     },
                     "properties": [
                       {
                         "type": "ObjectProperty",
-                        "start": 270,
-                        "end": 294,
+                        "start": 361,
+                        "end": 385,
                         "loc": {
                           "start": {
-                            "line": 14,
+                            "line": 16,
                             "column": 2,
-                            "index": 270
+                            "index": 361
                           },
                           "end": {
-                            "line": 14,
+                            "line": 16,
                             "column": 26,
-                            "index": 294
+                            "index": 385
                           }
                         },
                         "method": false,
                         "key": {
                           "type": "Identifier",
-                          "start": 270,
-                          "end": 273,
+                          "start": 361,
+                          "end": 364,
                           "loc": {
                             "start": {
-                              "line": 14,
+                              "line": 16,
                               "column": 2,
-                              "index": 270
+                              "index": 361
                             },
                             "end": {
-                              "line": 14,
+                              "line": 16,
                               "column": 5,
-                              "index": 273
+                              "index": 364
                             },
                             "identifierName": "foo"
                           },
@@ -1243,18 +1564,18 @@ const obj = {
                         "shorthand": false,
                         "value": {
                           "type": "FunctionExpression",
-                          "start": 275,
-                          "end": 294,
+                          "start": 366,
+                          "end": 385,
                           "loc": {
                             "start": {
-                              "line": 14,
+                              "line": 16,
                               "column": 7,
-                              "index": 275
+                              "index": 366
                             },
                             "end": {
-                              "line": 14,
+                              "line": 16,
                               "column": 26,
-                              "index": 294
+                              "index": 385
                             }
                           },
                           "id": null,
@@ -1263,18 +1584,18 @@ const obj = {
                           "params": [],
                           "body": {
                             "type": "BlockStatement",
-                            "start": 292,
-                            "end": 294,
+                            "start": 383,
+                            "end": 385,
                             "loc": {
                               "start": {
-                                "line": 14,
+                                "line": 16,
                                 "column": 24,
-                                "index": 292
+                                "index": 383
                               },
                               "end": {
-                                "line": 14,
+                                "line": 16,
                                 "column": 26,
-                                "index": 294
+                                "index": 385
                               }
                             },
                             "body": [],
