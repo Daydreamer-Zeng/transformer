@@ -560,6 +560,8 @@ export default class Tokenizer {
 
     this.addToken(TOKEN_TYPES.TemplateLiteralBegin, "`", loc);
 
+    let startLoc = this.getLocation();
+
     while (this.currentChar !== null) {
       if (inTemplateExpression) {
         let braceDepth = 1;
@@ -567,9 +569,9 @@ export default class Tokenizer {
         while (this.currentChar !== null && braceDepth > 0) {
           if (this.currentChar === "{") {
             braceDepth++;
-
-            this.addToken(TOKEN_TYPES.Punctuator, "{", loc);
+            startLoc = this.getLocation()
             this.nextChar();
+            this.addToken(TOKEN_TYPES.Punctuator, "{", startLoc);
             continue;
           }
 
@@ -578,12 +580,14 @@ export default class Tokenizer {
 
             if (braceDepth === 0) {
               // close of the template expression
-              this.addToken(TOKEN_TYPES.TemplateExpressionEnd, "}", loc);
+              this.addToken(TOKEN_TYPES.TemplateExpressionEnd, "}", this.getLocation());
               this.nextChar();
+              startLoc = this.getLocation();
               break;
             } else {
-              this.addToken(TOKEN_TYPES.Punctuator, "}", loc);
+              startLoc = this.getLocation();
               this.nextChar();
+              this.addToken(TOKEN_TYPES.Punctuator, "}", startLoc);
               continue;
             }
           }
@@ -635,22 +639,24 @@ export default class Tokenizer {
       }
 
       if (this.currentChar === "`") {
-        const endLoc = this.getLocation();
-        this.nextChar();
+        this.addToken(TOKEN_TYPES.TemplateElement, { raw: value, cooked: value, tail: true }, startLoc);
+        startLoc = this.getLocation();
 
-        this.addToken(TOKEN_TYPES.TemplateElement, value, loc);
-        this.addToken(TOKEN_TYPES.TemplateLiteralEnd, "`", endLoc);
+        this.nextChar();
+        this.addToken(TOKEN_TYPES.TemplateLiteralEnd, "`", startLoc);
         break;
       }
 
       if (this.currentChar === "$" && this.peekChar() === "{") {
         inTemplateExpression = true;
+        // startLoc = this.getLocation();
+
+        this.addToken(TOKEN_TYPES.TemplateElement, { raw: value, cooked: value, tail: false }, startLoc);
+        startLoc = this.getLocation();
 
         this.nextChar();
         this.nextChar();
-
-        this.addToken(TOKEN_TYPES.TemplateElement, value, loc);
-        this.addToken(TOKEN_TYPES.TemplateExpressionStart, "${", loc);
+        this.addToken(TOKEN_TYPES.TemplateExpressionStart, "${", startLoc);
         value = "";
         continue;
       }
