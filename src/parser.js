@@ -2437,7 +2437,7 @@ export default class Parser {
       return this.parseObjectExpression();
     }
 
-    if (type === TOKEN_TYPES.TemplateLiteralBegin) {
+    if (this.match(TOKEN_TYPES.TemplateLiteralBegin, "`")) {
       return this.parseTemplateLiteral();
     }
 
@@ -2627,7 +2627,40 @@ export default class Parser {
     });
   }
 
-  parseTemplateLiteral() {}
+  parseTemplateLiteral() {
+    const opening = this.consumeToken(TOKEN_TYPES.TemplateLiteralBegin, "`");
+
+    let quasis = [];
+    let expressions = [];
+
+    while (!this.match(TOKEN_TYPES.TemplateLiteralEnd, "`")) {
+      quasis.push(this.parseTemplateElement());
+
+      if (this.tryConsumeToken(TOKEN_TYPES.TemplateExpressionStart, "${")) {
+        expressions.push(this.parseExpression());
+        this.consumeToken(TOKEN_TYPES.TemplateExpressionEnd, "}");
+      }
+    };
+
+    const closing = this.consumeToken(TOKEN_TYPES.TemplateLiteralEnd, "`");
+
+    return this.createNode(NODE_TYPES.TemplateLiteral, opening.loc.start, closing.loc.end, {
+      quasis,
+      expressions
+    });
+  }
+
+  parseTemplateElement() {
+    const token = this.consumeToken(TOKEN_TYPES.TemplateElement);
+
+    return this.createNode(NODE_TYPES.TemplateElement, token.loc.start, token.loc.end, {
+      value: {
+        raw: token.value.raw,
+        cooked: token.value.cooked
+      },
+      tail: token.value.tail
+    });
+  }
 
   parseRegExpLiteral() {}
 
