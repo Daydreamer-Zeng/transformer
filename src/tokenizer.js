@@ -317,10 +317,11 @@ export default class Tokenizer {
     };
   }
 
-  createExtra(raw, value) {
+  createExtra(raw, value, additional = {}) {
     return {
       raw,
-      value
+      value,
+      ...additional
     };
   }
 
@@ -703,24 +704,87 @@ export default class Tokenizer {
   readRegularExpressionLiteral() {
     const loc = this.getLocation();
     let value = "";
+    let inCharClass = false;
 
     this.nextChar();
 
     while (this.currentChar !== null) {
-      if (this.currentChar === "/" && this.peekChar(-1) !== "\\") {
+      const char = this.currentChar;
+
+      if (char === "\\" && !inCharClass) {
+        value += char;
         this.nextChar();
-        break;
+
+        if (this.currentChar === null) {
+          throw new Error(`Unterminated regular expression literal at line ${loc.line}, column ${loc.column}`);
+        }
+
+        value += this.currentChar;
+        this.nextChar();
+        continue;
       }
 
-      value += this.currentChar;
+      if (char === "[") {
+        inCharClass = true;
+        value += char;
+        this.nextChar();
+
+        while (this.currentChar !== null) {
+          const classChar = this.currentChar;
+
+          if (classChar === "\\") {
+            value += classChar;
+            this.nextChar();
+
+            if (this.currentChar === null) {
+              throw new Error(`Unterminated character class at line ${loc.line}, column ${loc.column}`);
+            }
+
+            value += this.currentChar;
+            this.nextChar();
+            continue;
+          }
+
+          if (classChar === "]") {
+            inCharClass = false;
+            value += classChar;
+            this.nextChar();
+            break;
+          }
+
+          value += classChar;
+          this.nextChar();
+        }
+
+        if (inCharClass) {
+          throw new Error(`Unterminated character class at line ${loc.line}, column ${loc.column}`);
+        }
+
+        continue;
+      }
+
+      if (char === "/" && !inCharClass) {
+        this.nextChar();
+        
+        let flags = "";
+        while (this.currentChar !== null && /^[a-zA-Z]$/.test(this.currentChar)) {
+          flags += this.currentChar;
+          this.nextChar();
+        }
+
+        this.addToken(TOKEN_TYPES.RegularExpressionLiteral, undefined, loc, this.createExtra(`/${value}/${flags}`, undefined, { pattern: value, flags }));
+        return;
+      }
+
+      if (char === "\n" || char === "\r" || char === "\u2028" || char === "\u2029") {
+        throw new Error(`Unterminated regular expression literal at line ${loc.line}, column ${loc.column}`);
+      }
+
+      value += char;
       this.nextChar();
     }
 
-    if (value) {
-      this.addToken(TOKEN_TYPES.RegularExpressionLiteral, value, loc, this.createExtra(`/${value}/`, value));
-    } else {
-      throw new Error(`Unterminated regular expression literal at line ${loc.line}, column ${loc.column}`);
-    }
+    throw new Error(`Unterminated regular expression literal at line ${loc.line}, column ${loc.column}`);
   }
 
   readOperatorOrPunctuator() {
