@@ -529,24 +529,43 @@ export default class Tokenizer {
   }
 
   parseHexEscape() {
-    if (this.position + 2 < this.source.length) {
-      const hex = this.source.substring(this.position + 1, this.position + 3);
-      if (/^[0-9A-Fa-f]{2}$/.test(hex)) {
-        this.position += 2;
-        return String.fromCharCode(parseInt(hex, 16));
-      }
+    const d1 = this.peekChar(1);
+    const d2 = this.peekChar(2);
+    if (d1 !== null && d2 !== null && /^[0-9A-Fa-f]$/.test(d1) && /^[0-9A-Fa-f]$/.test(d2)) {
+      this.nextChar(); // move to first hex digit
+      const h1 = this.currentChar;
+      this.nextChar(); // move to second hex digit
+      const h2 = this.currentChar;
+      return String.fromCharCode(parseInt(h1 + h2, 16));
     }
 
     return "\\x";
   }
 
   parseUnicodeEscape() {
-    if (this.position + 4 < this.source.length) {
-      const hex = this.source.substring(this.position + 1, this.position + 5);
-      if (/^[0-9A-Fa-f]{4}$/.test(hex)) {
-        this.position += 4;
-        return String.fromCharCode(parseInt(hex, 16));
-      }
+    const a = this.peekChar(1);
+    const b = this.peekChar(2);
+    const c = this.peekChar(3);
+    const d = this.peekChar(4);
+    if (
+      a !== null &&
+      b !== null &&
+      c !== null &&
+      d !== null &&
+      /^[0-9A-Fa-f]$/.test(a) &&
+      /^[0-9A-Fa-f]$/.test(b) &&
+      /^[0-9A-Fa-f]$/.test(c) &&
+      /^[0-9A-Fa-f]$/.test(d)
+    ) {
+      this.nextChar();
+      const h1 = this.currentChar;
+      this.nextChar();
+      const h2 = this.currentChar;
+      this.nextChar();
+      const h3 = this.currentChar;
+      this.nextChar();
+      const h4 = this.currentChar;
+      return String.fromCharCode(parseInt(h1 + h2 + h3 + h4, 16));
     }
 
     return "\\u";
@@ -554,7 +573,8 @@ export default class Tokenizer {
 
   readTemplateLiteral() {
     const loc = this.getLocation();
-    let value = "";
+    let raw = "";
+    let cooked = "";
     let inTemplateExpression = false;
 
     this.nextChar();
@@ -640,7 +660,7 @@ export default class Tokenizer {
       }
 
       if (this.currentChar === "`") {
-        this.addToken(TOKEN_TYPES.TemplateElement, { raw: value, cooked: value, tail: true }, startLoc);
+        this.addToken(TOKEN_TYPES.TemplateElement, { raw, cooked, tail: true }, startLoc);
         startLoc = this.getLocation();
 
         this.nextChar();
@@ -652,29 +672,35 @@ export default class Tokenizer {
         inTemplateExpression = true;
         // startLoc = this.getLocation();
 
-        this.addToken(TOKEN_TYPES.TemplateElement, { raw: value, cooked: value, tail: false }, startLoc);
+        this.addToken(TOKEN_TYPES.TemplateElement, { raw, cooked, tail: false }, startLoc);
         startLoc = this.getLocation();
+        raw = "";
+        cooked = "";
 
         this.nextChar();
         this.nextChar();
         this.addToken(TOKEN_TYPES.TemplateExpressionStart, "${", startLoc);
-        value = "";
         continue;
       }
 
       if (this.currentChar === "\\") {
-        value += this.currentChar;
+        const escapeStart = this.position;
         this.nextChar();
 
         if (this.currentChar !== null) {
-          value += this.parseEscape();
+          const cookedChar = this.parseEscape();
+          raw += this.source.substring(escapeStart, this.position + 1);
+          cooked += cookedChar;
           this.nextChar();
+        } else {
+          raw += "\\";
         }
 
         continue;
       }
 
-      value += this.currentChar;
+      raw += this.currentChar;
+      cooked += this.currentChar;
       this.nextChar();
     }
   }
