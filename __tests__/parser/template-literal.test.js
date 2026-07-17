@@ -10,13 +10,14 @@ const test3 = \`\${name} world\`;
 const test4 = \`\${a}\${b}\${c}\`;
 const test5 = \`outer \${\`inner \${x}\`} outer\`;
 const test6 = \`\`;
-const test7 = \`\${x}\`;`;
+const test7 = \`\${x}\`;
+const test8 = \`hello \\u0041\``;
       const tokens = new Tokenizer().tokenize(input);
 
       const expected = {
         "type": "File",
         "start": 0,
-        "end": 205,
+        "end": 234,
         "loc": {
           "start": {
             "line": 1,
@@ -24,16 +25,16 @@ const test7 = \`\${x}\`;`;
             "index": 0
           },
           "end": {
-            "line": 7,
-            "column": 21,
-            "index": 205
+            "line": 8,
+            "column": 28,
+            "index": 234
           }
         },
         "errors": [],
         "program": {
           "type": "Program",
           "start": 0,
-          "end": 205,
+          "end": 234,
           "loc": {
             "start": {
               "line": 1,
@@ -41,9 +42,9 @@ const test7 = \`\${x}\`;`;
               "index": 0
             },
             "end": {
-              "line": 7,
-              "column": 21,
-              "index": 205
+              "line": 8,
+              "column": 28,
+              "index": 234
             }
           },
           "sourceType": "module",
@@ -1083,6 +1084,104 @@ const test7 = \`\${x}\`;`;
                         "value": {
                           "raw": "",
                           "cooked": ""
+                        },
+                        "tail": true
+                      }
+                    ]
+                  }
+                }
+              ],
+              "kind": "const"
+            },
+            {
+              "type": "VariableDeclaration",
+              "start": 206,
+              "end": 234,
+              "loc": {
+                "start": {
+                  "line": 8,
+                  "column": 0,
+                  "index": 206
+                },
+                "end": {
+                  "line": 8,
+                  "column": 28,
+                  "index": 234
+                }
+              },
+              "declarations": [
+                {
+                  "type": "VariableDeclarator",
+                  "start": 212,
+                  "end": 234,
+                  "loc": {
+                    "start": {
+                      "line": 8,
+                      "column": 6,
+                      "index": 212
+                    },
+                    "end": {
+                      "line": 8,
+                      "column": 28,
+                      "index": 234
+                    }
+                  },
+                  "id": {
+                    "type": "Identifier",
+                    "start": 212,
+                    "end": 217,
+                    "loc": {
+                      "start": {
+                        "line": 8,
+                        "column": 6,
+                        "index": 212
+                      },
+                      "end": {
+                        "line": 8,
+                        "column": 11,
+                        "index": 217
+                      },
+                      "identifierName": "test8"
+                    },
+                    "name": "test8"
+                  },
+                  "init": {
+                    "type": "TemplateLiteral",
+                    "start": 220,
+                    "end": 234,
+                    "loc": {
+                      "start": {
+                        "line": 8,
+                        "column": 14,
+                        "index": 220
+                      },
+                      "end": {
+                        "line": 8,
+                        "column": 28,
+                        "index": 234
+                      }
+                    },
+                    "expressions": [],
+                    "quasis": [
+                      {
+                        "type": "TemplateElement",
+                        "start": 221,
+                        "end": 233,
+                        "loc": {
+                          "start": {
+                            "line": 8,
+                            "column": 15,
+                            "index": 221
+                          },
+                          "end": {
+                            "line": 8,
+                            "column": 27,
+                            "index": 233
+                          }
+                        },
+                        "value": {
+                          "raw": "hello \\u0041",
+                          "cooked": "hello A"
                         },
                         "tail": true
                       }
