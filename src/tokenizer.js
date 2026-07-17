@@ -4,7 +4,7 @@ export const TOKEN_TYPES = Object.freeze({
   BooleanLiteral: "BooleanLiteral",
   NumericLiteral: "NumericLiteral",
   StringLiteral: "StringLiteral",
-  RegularExpressionLiteral: "RegularExpressionLiteral",
+  RegExpLiteral: "RegExpLiteral",
 
   // Template literals
   TemplateLiteralBegin: "TemplateLiteralBegin",
@@ -727,7 +727,7 @@ export default class Tokenizer {
     return false;
   }
 
-  readRegularExpressionLiteral() {
+  readRegExpLiteral() {
     const loc = this.getLocation();
     let value = "";
     let inCharClass = false;
@@ -798,7 +798,7 @@ export default class Tokenizer {
           this.nextChar();
         }
 
-        this.addToken(TOKEN_TYPES.RegularExpressionLiteral, undefined, loc, this.createExtra(`/${value}/${flags}`, undefined, { pattern: value, flags }));
+        this.addToken(TOKEN_TYPES.RegExpLiteral, undefined, loc, this.createExtra(`/${value}/${flags}`, undefined, { pattern: value, flags }));
         return;
       }
 
@@ -815,7 +815,7 @@ export default class Tokenizer {
 
   readOperatorOrPunctuator() {
     if (this.currentChar === "/" && this.isStartOfRegex()) {
-      this.readRegularExpressionLiteral();
+      this.readRegExpLiteral();
       return;
     }
 
