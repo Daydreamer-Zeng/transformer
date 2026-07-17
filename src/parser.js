@@ -80,6 +80,7 @@ export const NODE_TYPES = Object.freeze({
   ExportDefaultSpecifier: "ExportDefaultSpecifier",
   ExportNamespaceSpecifier: "ExportNamespaceSpecifier",
   ExportSpecifier: "ExportSpecifier",
+  RegExpLiteral: "RegExpLiteral",
   DebuggerStatement: "DebuggerStatement"
 });
 
@@ -2662,7 +2663,30 @@ export default class Parser {
     });
   }
 
-  parseRegExpLiteral() {}
+  parseRegExpLiteral() {
+    const token = this.consumeToken(TOKEN_TYPES.RegExpLiteral);
+    const pattern = token.extra?.pattern ?? "";
+    const flags = token.extra?.flags ?? "";
+    const raw = token.extra?.raw ?? `/${pattern}/${flags}`;
+
+    // let value = undefined;
+    // try {
+    //   value = new RegExp(pattern, flags);
+    // } catch (error) {
+    //   // Keep null for invalid regex patterns or flags; tokenizer already validates syntax shape.
+    //   value = null;
+    // }
+
+    return this.createNode(NODE_TYPES.RegExpLiteral, token.loc.start, token.loc.end, {
+      // value,
+      pattern,
+      flags,
+      extra: {
+        // value,
+        raw
+      }
+    });
+  }
 
   parseParenthesizedExpression() {
     const startLoc = this.currentToken.loc.start;
