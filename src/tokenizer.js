@@ -470,105 +470,137 @@ export default class Tokenizer {
   readStringLiteral() {
     const loc = this.getLocation();
     const quote = this.currentChar;
-    let value = "";
+    let raw = "";
+    let cooked = "";
 
+    // include opening quote in raw
+    raw += quote;
     this.nextChar();
 
     while (this.currentChar !== null) {
       if (this.currentChar === quote) {
+        raw += quote;
         this.nextChar();
         break;
       }
 
       if (this.currentChar === "\\") {
-        value += this.currentChar;
+        raw += "\\";
+        // move to escape char
         this.nextChar();
 
         if (this.currentChar !== null) {
-          value += this.parseEscape();
-          this.nextChar();
+          const { raw: escRaw, cooked: escCooked } = this.parseEscapeSequence();
+          raw += escRaw;
+          cooked += escCooked;
+          continue;
+        } else {
+          // lone backslash at EOF inside string
+          break;
         }
-      } else {
-        value += this.currentChar;
+      }
+
+      raw += this.currentChar;
+      cooked += this.currentChar;
+      this.nextChar();
+    }
+
+    this.addToken(TOKEN_TYPES.StringLiteral, cooked, loc, this.createExtra(raw, cooked));
+  }
+  // Parse an escape sequence where `this.currentChar` is the first char AFTER the backslash
+  // Consumes the escape sequence and returns an object { raw, cooked }
+  parseEscapeSequence() {
+    const ch = this.currentChar;
+    if (ch === null) {
+      return { raw: "", cooked: "" };
+    }
+
+    switch (ch) {
+      case "n":
         this.nextChar();
+        return { raw: "n", cooked: "\n" };
+      case "r":
+        this.nextChar();
+        return { raw: "r", cooked: "\r" };
+      case "t":
+        this.nextChar();
+        return { raw: "t", cooked: "\t" };
+      case "b":
+        this.nextChar();
+        return { raw: "b", cooked: "\b" };
+      case "f":
+        this.nextChar();
+        return { raw: "f", cooked: "\f" };
+      case "v":
+        this.nextChar();
+        return { raw: "v", cooked: "\v" };
+      case "0":
+        this.nextChar();
+        return { raw: "0", cooked: "\0" };
+      case "'":
+        this.nextChar();
+        return { raw: "'", cooked: "'" };
+      case '"':
+        this.nextChar();
+        return { raw: '"', cooked: '"' };
+      case "\\":
+        this.nextChar();
+        return { raw: "\\", cooked: "\\" };
+      case "x": {
+        const d1 = this.peekChar(1);
+        const d2 = this.peekChar(2);
+        if (d1 !== null && d2 !== null && /^[0-9A-Fa-f]$/.test(d1) && /^[0-9A-Fa-f]$/.test(d2)) {
+          // consume 'x' then two hex digits
+          this.nextChar(); // move to first hex digit
+          const h1 = this.currentChar;
+          this.nextChar(); // move to second hex digit
+          const h2 = this.currentChar;
+          this.nextChar(); // move past second hex digit
+          return { raw: `x${h1}${h2}`, cooked: String.fromCharCode(parseInt(h1 + h2, 16)) };
+        }
+
+        // invalid escape, consume 'x' and return literal 'x'
+        this.nextChar();
+        return { raw: "x", cooked: "x" };
+      }
+      case "u": {
+        const a = this.peekChar(1);
+        const b = this.peekChar(2);
+        const c = this.peekChar(3);
+        const d = this.peekChar(4);
+        if (
+          a !== null &&
+          b !== null &&
+          c !== null &&
+          d !== null &&
+          /^[0-9A-Fa-f]$/.test(a) &&
+          /^[0-9A-Fa-f]$/.test(b) &&
+          /^[0-9A-Fa-f]$/.test(c) &&
+          /^[0-9A-Fa-f]$/.test(d)
+        ) {
+          // consume 'u' then four hex digits
+          this.nextChar();
+          const h1 = this.currentChar;
+          this.nextChar();
+          const h2 = this.currentChar;
+          this.nextChar();
+          const h3 = this.currentChar;
+          this.nextChar();
+          const h4 = this.currentChar;
+          this.nextChar();
+          return { raw: `u${h1}${h2}${h3}${h4}`, cooked: String.fromCharCode(parseInt(h1 + h2 + h3 + h4, 16)) };
+        }
+
+        // invalid unicode escape, consume 'u'
+        this.nextChar();
+        return { raw: "u", cooked: "u" };
+      }
+      default: {
+        const literal = ch;
+        this.nextChar();
+        return { raw: literal, cooked: literal };
       }
     }
-
-    this.addToken(TOKEN_TYPES.StringLiteral, value, loc, this.createExtra(quote + value + quote, value));
-  }
-
-  parseEscape() {
-    switch (this.currentChar) {
-      case "n":
-        return "\n";
-      case "r":
-        return "\r";
-      case "t":
-        return "\t";
-      case "b":
-        return "\b";
-      case "f":
-        return "\f";
-      case "v":
-        return "\v";
-      case "0":
-        return "\0";
-      case "'":
-        return "'";
-      case '"':
-        return '"';
-      case "\\":
-        return "\\";
-      case "x":
-        return this.parseHexEscape();
-      case "u":
-        return this.parseUnicodeEscape();
-      default:
-        return this.currentChar;
-    }
-  }
-
-  parseHexEscape() {
-    const d1 = this.peekChar(1);
-    const d2 = this.peekChar(2);
-    if (d1 !== null && d2 !== null && /^[0-9A-Fa-f]$/.test(d1) && /^[0-9A-Fa-f]$/.test(d2)) {
-      this.nextChar(); // move to first hex digit
-      const h1 = this.currentChar;
-      this.nextChar(); // move to second hex digit
-      const h2 = this.currentChar;
-      return String.fromCharCode(parseInt(h1 + h2, 16));
-    }
-
-    return "\\x";
-  }
-
-  parseUnicodeEscape() {
-    const a = this.peekChar(1);
-    const b = this.peekChar(2);
-    const c = this.peekChar(3);
-    const d = this.peekChar(4);
-    if (
-      a !== null &&
-      b !== null &&
-      c !== null &&
-      d !== null &&
-      /^[0-9A-Fa-f]$/.test(a) &&
-      /^[0-9A-Fa-f]$/.test(b) &&
-      /^[0-9A-Fa-f]$/.test(c) &&
-      /^[0-9A-Fa-f]$/.test(d)
-    ) {
-      this.nextChar();
-      const h1 = this.currentChar;
-      this.nextChar();
-      const h2 = this.currentChar;
-      this.nextChar();
-      const h3 = this.currentChar;
-      this.nextChar();
-      const h4 = this.currentChar;
-      return String.fromCharCode(parseInt(h1 + h2 + h3 + h4, 16));
-    }
-
-    return "\\u";
   }
 
   readTemplateLiteral() {
@@ -684,14 +716,13 @@ export default class Tokenizer {
       }
 
       if (this.currentChar === "\\") {
-        const escapeStart = this.position;
+        // handle escape sequences inside template
+        raw += "\\";
         this.nextChar();
-
         if (this.currentChar !== null) {
-          const cookedChar = this.parseEscape();
-          raw += this.source.substring(escapeStart, this.position + 1);
-          cooked += cookedChar;
-          this.nextChar();
+          const { raw: escRaw, cooked: escCooked } = this.parseEscapeSequence();
+          raw += escRaw;
+          cooked += escCooked;
         } else {
           raw += "\\";
         }
@@ -818,34 +849,24 @@ export default class Tokenizer {
       this.readRegExpLiteral();
       return;
     }
-
     const loc = this.getLocation();
     let value = "";
 
-    const twoChars = this.currentChar + (this.peekChar() || "");
-    const wchar = twoChars + (this.peekChar(2) || "");
-    if (Tokenizer.OPERATOR.has(wchar) || Tokenizer.PUNCTUATOR.has(wchar)) {
-      value = wchar;
+    const c1 = this.currentChar || "";
+    const c2 = this.peekChar() || "";
+    const c3 = this.peekChar(2) || "";
 
-      if (this.peekChar() !== null) {
-        this.nextChar();
+    const three = c1 + c2 + c3;
+    const two = c1 + c2;
 
-        if (this.peekChar(2) !== null) {
-          this.nextChar();
-        }
-      }
-
-      this.nextChar();
-    } else if (Tokenizer.OPERATOR.has(twoChars) || Tokenizer.PUNCTUATOR.has(twoChars)) {
-      value = twoChars;
-
-      if (this.peekChar() !== null) {
-        this.nextChar();
-      }
-
-      this.nextChar();
-    } else if (Tokenizer.OPERATOR.has(this.currentChar) || Tokenizer.PUNCTUATOR.has(this.currentChar)) {
-      value = this.currentChar;
+    if (Tokenizer.OPERATOR.has(three) || Tokenizer.PUNCTUATOR.has(three)) {
+      value = three;
+      for (let i = 0; i < 3; i++) this.nextChar();
+    } else if (Tokenizer.OPERATOR.has(two) || Tokenizer.PUNCTUATOR.has(two)) {
+      value = two;
+      for (let i = 0; i < 2; i++) this.nextChar();
+    } else if (Tokenizer.OPERATOR.has(c1) || Tokenizer.PUNCTUATOR.has(c1)) {
+      value = c1;
       this.nextChar();
     }
 
@@ -883,7 +904,6 @@ export default class Tokenizer {
     const loc = this.getLocation();
     let value = "";
     let type = null;
-
     if (this.currentChar === "/" && this.peekChar() === "/") {
       type = TOKEN_TYPES.CommentLine;
       this.nextChar();
@@ -893,27 +913,36 @@ export default class Tokenizer {
         value += this.currentChar;
         this.nextChar();
       }
-    } else if (this.currentChar === "/" && this.peekChar() === "*") {
+
+      // line comments may be empty
+      this.addToken(type, value, loc);
+      return;
+    }
+
+    if (this.currentChar === "/" && this.peekChar() === "*") {
       type = TOKEN_TYPES.CommentBlock;
       this.nextChar();
       this.nextChar();
 
+      let closed = false;
       while (this.currentChar !== null) {
         if (this.currentChar === "*" && this.peekChar() === "/") {
           this.nextChar();
           this.nextChar();
+          closed = true;
           break;
         }
 
         value += this.currentChar;
         this.nextChar();
       }
-    }
 
-    if (value) {
+      if (!closed) {
+        throw new Error(`Unterminated comment at line ${loc.line}, column ${loc.column}`);
+      }
+
       this.addToken(type, value, loc);
-    } else {
-      throw new Error(`Unterminated comment at line ${loc.line}, column ${loc.column}`);
+      return;
     }
   }
 }
