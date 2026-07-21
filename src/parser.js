@@ -115,6 +115,29 @@ export default class Parser {
 
   static EXPORT_DECLS = new Set(["const", "let", "var", "function", "class"]);
 
+  static STATEMENT_PARSERS = new Map([
+    ["var", "parseVariableDeclaration"],
+    ["let", "parseVariableDeclaration"],
+    ["const", "parseVariableDeclaration"],
+    ["function", "parseFunctionDeclaration"],
+    ["async", "parseAsyncDeclaration"],
+    ["if", "parseIfStatement"],
+    ["switch", "parseSwitchStatement"],
+    ["for", "parseForStatement"],
+    ["while", "parseWhileStatement"],
+    ["do", "parseDoWhileStatement"],
+    ["return", "parseReturnStatement"],
+    ["break", "parseBreakStatement"],
+    ["continue", "parseContinueStatement"],
+    ["yield", "parseYieldExpression"],
+    ["throw", "parseThrowStatement"],
+    ["try", "parseTryStatement"],
+    ["class", "parseClassDeclaration"],
+    ["import", "parseImportDeclaration"],
+    ["export", "parseExportDeclaration"],
+    ["debugger", "parseDebuggerStatement"]
+  ]);
+
   parse(tokens) {
     this.tokens = tokens;
     this.position = 0;
@@ -263,66 +286,12 @@ export default class Parser {
 
   parseStatement() {
     if (this.currentToken.type === TOKEN_TYPES.Keyword) {
-      switch (this.currentToken.value) {
-        case "var":
-        case "let":
-        case "const":
-          return this.parseVariableDeclaration();
-
-        case "function":
-          return this.parseFunctionDeclaration();
-
-        case "async":
-          return this.parseAsyncDeclaration();
-
-        case "if":
-          return this.parseIfStatement();
-
-        case "switch":
-          return this.parseSwitchStatement();
-
-        case "for":
-          return this.parseForStatement();
-
-        case "while":
-          return this.parseWhileStatement();
-
-        case "do":
-          return this.parseDoWhileStatement();
-
-        case "return":
-          return this.parseReturnStatement();
-
-        case "break":
-          return this.parseBreakStatement();
-
-        case "continue":
-          return this.parseContinueStatement();
-
-        case "yield":
-          return this.parseYieldExpression();
-
-        case "throw":
-          return this.parseThrowStatement();
-
-        case "try":
-          return this.parseTryStatement();
-
-        case "class":
-          return this.parseClassDeclaration();
-
-        case "import":
-          return this.parseImportDeclaration();
-
-        case "export":
-          return this.parseExportDeclaration();
-
-        case "debugger":
-          return this.parseDebuggerStatement();
-
-        default:
-          return this.parseExpressionStatement();
+      const parserName = this.constructor.STATEMENT_PARSERS.get(this.currentToken.value);
+      if (parserName) {
+        return this[parserName]();
       }
+
+      return this.parseExpressionStatement();
     }
 
     if (this.currentToken.type === TOKEN_TYPES.Punctuator && this.currentToken.value === "{") {
