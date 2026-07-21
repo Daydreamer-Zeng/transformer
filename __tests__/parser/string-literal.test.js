@@ -1,5 +1,5 @@
-import Tokenizer from "../../src/tokenizer.js";
-import Parser from "../../src/parser.js";
+import Tokenizer from "../../js/tokenizer.js";
+import Parser from "../../js/parser.js";
 
 describe("Parser", () => {
   describe("String Literal", () => {

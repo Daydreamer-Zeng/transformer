@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  
+</body>
+<script type="module">
+import Tokenizer from "./../src/tokenizer.js";
+import Parser from "./../src/parser.js";
+
+const code = `const test1 = /(a)(\\1(b\\2))/;
+const test2 = /[]/;
+const test3 = /a{2147483648}/;
+const test4 = /(?=(a))\\1/;
+const test5 = /^[\\w.-]+@[\\w-]+\\.[a-zA-Z]{2,}$/;
+const test6 = /^(https?:\\/\\/)?([\\w-]+\\.)+[\\w-]+(\\/[\\w-./?%&=]*)?$/;
+const test7 = /<\\/?([a-zA-Z][a-zA-Z0-9]*)\\b[^>]*>/g;
+const test8 = /\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])/`;
+console.log("source:", code);
+
+const tokens = new Tokenizer().tokenize(code);
+console.log("tokens:", tokens);
+
+const ast = new Parser({ sourceType: "module" }).parse(tokens);
+console.log("AST:", ast);
+</script>
+</html>
