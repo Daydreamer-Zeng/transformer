@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 
 const rootDir = path.join("__tests__");
 const args = process.argv.slice(2);
@@ -15,9 +15,14 @@ if (args.length === 0) {
   }
 
   const resolved = paths.map((target) => {
-    const filepath = path.join(rootDir, `${target}.test.js`);
-    if (fs.existsSync(filepath)) {
-      return filepath;
+    const jsFile = path.join(rootDir, `${target}.test.js`);
+    if (fs.existsSync(jsFile)) {
+      return jsFile;
+    }
+
+    const tsFile = path.join(rootDir, `${target}.test.ts`);
+    if (fs.existsSync(tsFile)) {
+      return tsFile;
     }
 
     const dir = path.join(rootDir, target);
