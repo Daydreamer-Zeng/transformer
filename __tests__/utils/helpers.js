@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 export function outputFile(data, filename, type = "txt") {
-  const dir = path.join(__dirname, "dist");
+  const dir = path.join(__dirname, "./../dist");
 
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
