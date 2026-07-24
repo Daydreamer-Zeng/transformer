@@ -12,7 +12,11 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "allowJs": true,
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src", "js", "__tests__", "scripts"],
   "exclude": ["node_modules", "dist", "coverage"]
