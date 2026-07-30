@@ -12,7 +12,7 @@ function normalizeOptions(options: TokenizerOptions): NormalizedConfig {
   return {
     plugins: new Set(options.plugins || []),
     strictMode: options.strictMode || false,
-    sourceType: options.sourceType || "module"
+    sourceType: options.sourceType || "script"
   };
 }
 
@@ -44,32 +44,34 @@ export default function Tokenizer(options: TokenizerOptions) {
 
   function next() {
     if (state.pos >= source.length) {
-      return;
+      return void 0;
     }
 
-    const code = source.charCodeAt(state.pos);
-    if (code === charCodes.carriageReturn) {
-      state.line++;
-      state.column = 0;
-      state.pos++;
+    const char = source[state.pos];
+    const code = char.charCodeAt(0);
 
-      if (source.charCodeAt(state.pos) === charCodes.lineFeed) {
-        state.pos++;
+    if (code === charCodes.carriageReturn) {
+      if (source.charCodeAt(state.pos + 1) === charCodes.lineFeed) {
+        state.pos += 2;
+      } else {
+        state.pos += 1;
       }
 
-      return source[state.pos];
+      state.line++;
+      state.column = 0;
+      return "\n";
     }
 
     if (code === charCodes.lineFeed) {
       state.line++;
       state.column = 0;
       state.pos++;
-      return source[state.pos];
+      return "\n";
     }
 
     state.column++;
     state.pos++;
-    return source[state.pos];
+    return char
   }
 
   function add(type: string, startLoc: Loc, properties: any = {}) {
@@ -870,11 +872,11 @@ export default function Tokenizer(options: TokenizerOptions) {
     }
 
     if (current.type === tt.Keyword) {
-      return (KWS_TABLE[current.value] ?? 0 & tf.BEFORE_REGEX) === tf.BEFORE_REGEX;
+      return ((KWS_TABLE[current.value] ?? 0) & tf.BEFORE_REGEX) === tf.BEFORE_REGEX;
     }
 
     if (current.type === tt.Operator || current.type === tt.Punctuator) {
-      return (PUNCT_TABLE[current.value] ?? 0 & tf.BEFORE_REGEX) === tf.BEFORE_REGEX;
+      return ((PUNCT_TABLE[current.value] ?? 0) & tf.BEFORE_REGEX) === tf.BEFORE_REGEX;
     }
 
     return false;
@@ -975,14 +977,15 @@ export default function Tokenizer(options: TokenizerOptions) {
 
   function isStartOfPunctuator(): boolean {
     const char = source[state.pos];
+
     return (
-      (PUNCT_TABLE[char] ?? 0 & tf.OPERATOR) === tf.OPERATOR ||
-      (PUNCT_TABLE[char] ?? 0 & tf.PUNCTUATOR) === tf.PUNCTUATOR
+      ((PUNCT_TABLE[char] ?? 0) & tf.OPERATOR) === tf.OPERATOR ||
+      ((PUNCT_TABLE[char] ?? 0) & tf.PUNCTUATOR) === tf.PUNCTUATOR
     );
   }
 
   function readPunctuator() {
-    const code = source.codePointAt(state.pos);
+    const code = source.charCodeAt(state.pos);
 
     switch (code) {
       case charCodes.dot:
@@ -1064,6 +1067,7 @@ export default function Tokenizer(options: TokenizerOptions) {
     const startLoc = getLoc();
     const value = source.slice(state.pos, state.pos + size);
     state.pos += size;
+    state.column += size;
     return add(type, startLoc, { value });
   }
 

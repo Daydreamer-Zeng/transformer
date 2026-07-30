@@ -1,0 +1,479 @@
+{
+  "filepath": "__tests__/syntax/variable-declaration.ts",
+  "content": "const num = 1;\r\nconst str = \"hello world\";\r\nlet define;\r\nconst _null = null",
+  "tokens": [
+    {
+      "type": "Keyword",
+      "start": {
+        "line": 1,
+        "column": 0,
+        "index": 0
+      },
+      "end": {
+        "line": 1,
+        "column": 5,
+        "index": 5
+      },
+      "value": "const"
+    },
+    {
+      "type": "Identifier",
+      "start": {
+        "line": 1,
+        "column": 6,
+        "index": 6
+      },
+      "end": {
+        "line": 1,
+        "column": 9,
+        "index": 9
+      },
+      "value": "num"
+    },
+    {
+      "type": "Operator",
+      "start": {
+        "line": 1,
+        "column": 10,
+        "index": 10
+      },
+      "end": {
+        "line": 1,
+        "column": 11,
+        "index": 11
+      },
+      "value": "="
+    },
+    {
+      "type": "NumericLiteral",
+      "start": {
+        "line": 1,
+        "column": 12,
+        "index": 12
+      },
+      "end": {
+        "line": 1,
+        "column": 13,
+        "index": 13
+      },
+      "raw": "1",
+      "value": 1
+    },
+    {
+      "type": "Punctuator",
+      "start": {
+        "line": 1,
+        "column": 13,
+        "index": 13
+      },
+      "end": {
+        "line": 1,
+        "column": 14,
+        "index": 14
+      },
+      "value": ";"
+    },
+    {
+      "type": "Keyword",
+      "start": {
+        "line": 2,
+        "column": 0,
+        "index": 16
+      },
+      "end": {
+        "line": 2,
+        "column": 5,
+        "index": 21
+      },
+      "value": "const"
+    },
+    {
+      "type": "Identifier",
+      "start": {
+        "line": 2,
+        "column": 6,
+        "index": 22
+      },
+      "end": {
+        "line": 2,
+        "column": 9,
+        "index": 25
+      },
+      "value": "str"
+    },
+    {
+      "type": "Operator",
+      "start": {
+        "line": 2,
+        "column": 10,
+        "index": 26
+      },
+      "end": {
+        "line": 2,
+        "column": 11,
+        "index": 27
+      },
+      "value": "="
+    },
+    {
+      "type": "StringLiteral",
+      "start": {
+        "line": 2,
+        "column": 12,
+        "index": 28
+      },
+      "end": {
+        "line": 2,
+        "column": 25,
+        "index": 41
+      },
+      "raw": "\"hello world\"",
+      "value": "hello world"
+    },
+    {
+      "type": "Punctuator",
+      "start": {
+        "line": 2,
+        "column": 25,
+        "index": 41
+      },
+      "end": {
+        "line": 2,
+        "column": 26,
+        "index": 42
+      },
+      "value": ";"
+    },
+    {
+      "type": "Keyword",
+      "start": {
+        "line": 3,
+        "column": 0,
+        "index": 44
+      },
+      "end": {
+        "line": 3,
+        "column": 3,
+        "index": 47
+      },
+      "value": "let"
+    },
+    {
+      "type": "Identifier",
+      "start": {
+        "line": 3,
+        "column": 4,
+        "index": 48
+      },
+      "end": {
+        "line": 3,
+        "column": 10,
+        "index": 54
+      },
+      "value": "define"
+    },
+    {
+      "type": "Punctuator",
+      "start": {
+        "line": 3,
+        "column": 10,
+        "index": 54
+      },
+      "end": {
+        "line": 3,
+        "column": 11,
+        "index": 55
+      },
+      "value": ";"
+    },
+    {
+      "type": "Keyword",
+      "start": {
+        "line": 4,
+        "column": 0,
+        "index": 57
+      },
+      "end": {
+        "line": 4,
+        "column": 5,
+        "index": 62
+      },
+      "value": "const"
+    },
+    {
+      "type": "Identifier",
+      "start": {
+        "line": 4,
+        "column": 6,
+        "index": 63
+      },
+      "end": {
+        "line": 4,
+        "column": 11,
+        "index": 68
+      },
+      "value": "_null"
+    },
+    {
+      "type": "Operator",
+      "start": {
+        "line": 4,
+        "column": 12,
+        "index": 69
+      },
+      "end": {
+        "line": 4,
+        "column": 13,
+        "index": 70
+      },
+      "value": "="
+    },
+    {
+      "type": "NullLiteral",
+      "start": {
+        "line": 4,
+        "column": 14,
+        "index": 71
+      },
+      "end": {
+        "line": 4,
+        "column": 18,
+        "index": 75
+      },
+      "value": null
+    }
+  ],
+  "ast": {
+    "type": "Program",
+    "start": {
+      "line": 1,
+      "column": 0,
+      "index": 0
+    },
+    "end": {
+      "line": 4,
+      "column": 18,
+      "index": 75
+    },
+    "body": [
+      {
+        "type": "VariableDeclaration",
+        "start": {
+          "line": 1,
+          "column": 0,
+          "index": 0
+        },
+        "end": {
+          "line": 1,
+          "column": 14,
+          "index": 14
+        },
+        "kind": "const",
+        "declarations": [
+          {
+            "type": "VariableDeclarator",
+            "start": {
+              "line": 1,
+              "column": 6,
+              "index": 6
+            },
+            "end": {
+              "line": 1,
+              "column": 13,
+              "index": 13
+            },
+            "id": {
+              "type": "Identifier",
+              "start": {
+                "line": 1,
+                "column": 6,
+                "index": 6
+              },
+              "end": {
+                "line": 1,
+                "column": 9,
+                "index": 9
+              },
+              "name": "num"
+            },
+            "init": {
+              "type": "NumericLiteral",
+              "start": {
+                "line": 1,
+                "column": 12,
+                "index": 12
+              },
+              "end": {
+                "line": 1,
+                "column": 13,
+                "index": 13
+              },
+              "value": 1,
+              "raw": "1"
+            }
+          }
+        ]
+      },
+      {
+        "type": "VariableDeclaration",
+        "start": {
+          "line": 2,
+          "column": 0,
+          "index": 16
+        },
+        "end": {
+          "line": 2,
+          "column": 26,
+          "index": 42
+        },
+        "kind": "const",
+        "declarations": [
+          {
+            "type": "VariableDeclarator",
+            "start": {
+              "line": 2,
+              "column": 6,
+              "index": 22
+            },
+            "end": {
+              "line": 2,
+              "column": 25,
+              "index": 41
+            },
+            "id": {
+              "type": "Identifier",
+              "start": {
+                "line": 2,
+                "column": 6,
+                "index": 22
+              },
+              "end": {
+                "line": 2,
+                "column": 9,
+                "index": 25
+              },
+              "name": "str"
+            },
+            "init": {
+              "type": "StringLiteral",
+              "start": {
+                "line": 2,
+                "column": 12,
+                "index": 28
+              },
+              "end": {
+                "line": 2,
+                "column": 25,
+                "index": 41
+              },
+              "value": "hello world",
+              "raw": "\"hello world\""
+            }
+          }
+        ]
+      },
+      {
+        "type": "VariableDeclaration",
+        "start": {
+          "line": 3,
+          "column": 0,
+          "index": 44
+        },
+        "end": {
+          "line": 3,
+          "column": 11,
+          "index": 55
+        },
+        "kind": "let",
+        "declarations": [
+          {
+            "type": "VariableDeclarator",
+            "start": {
+              "line": 3,
+              "column": 4,
+              "index": 48
+            },
+            "end": {
+              "line": 3,
+              "column": 10,
+              "index": 54
+            },
+            "id": {
+              "type": "Identifier",
+              "start": {
+                "line": 3,
+                "column": 4,
+                "index": 48
+              },
+              "end": {
+                "line": 3,
+                "column": 10,
+                "index": 54
+              },
+              "name": "define"
+            },
+            "init": null
+          }
+        ]
+      },
+      {
+        "type": "VariableDeclaration",
+        "start": {
+          "line": 4,
+          "column": 0,
+          "index": 57
+        },
+        "end": {
+          "line": 4,
+          "column": 18,
+          "index": 75
+        },
+        "kind": "const",
+        "declarations": [
+          {
+            "type": "VariableDeclarator",
+            "start": {
+              "line": 4,
+              "column": 6,
+              "index": 63
+            },
+            "end": {
+              "line": 4,
+              "column": 18,
+              "index": 75
+            },
+            "id": {
+              "type": "Identifier",
+              "start": {
+                "line": 4,
+                "column": 6,
+                "index": 63
+              },
+              "end": {
+                "line": 4,
+                "column": 11,
+                "index": 68
+              },
+              "name": "_null"
+            },
+            "init": {
+              "type": "NullLiteral",
+              "start": {
+                "line": 4,
+                "column": 14,
+                "index": 71
+              },
+              "end": {
+                "line": 4,
+                "column": 18,
+                "index": 75
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "sourceType": "script"
+  },
+  "duration": 2
+}

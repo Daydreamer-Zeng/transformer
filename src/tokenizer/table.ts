@@ -1,6 +1,6 @@
-import { TOKEN_TYPES, TOKEN_TYPES as tt } from "@/utils/types.js";
+import { TOKEN_TYPES as tt } from "@/utils/types.js";
 
-type LiteralRecord = Record<string, { type: TOKEN_TYPES; value: any }>;
+type LiteralRecord = Record<string, { type: tt; value: any }>;
 
 export const LITERAL_TABLE: LiteralRecord = Object.assign(Object.create(null), {
   null: { type: tt.NullLiteral, value: null },

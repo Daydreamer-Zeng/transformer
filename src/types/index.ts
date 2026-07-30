@@ -1,7 +1,7 @@
 export interface TokenizerOptions {
-  plugins: string[]
-  strictMode: boolean
-  sourceType: "script" | "module"
+  plugins?: string[]
+  strictMode?: boolean
+  sourceType?: "script" | "module"
 }
 
 export interface NormalizedConfig {
