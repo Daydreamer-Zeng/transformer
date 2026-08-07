@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+
+</body>
+<script type="module">
+  import Tokenizer from "./tokenizer.js";
+
+  const response = await fetch("./debug.js");
+  const content = await response.text();
+
+  console.time("tokenizer");
+  const tokenizer = new Tokenizer();
+  const tokens = tokenizer.tokenize(content);
+
+  console.log(tokenizer);
+  console.log(content);
+  console.log(tokens);
+  console.timeEnd("tokenizer");
+
+  // for (const element of tokens) {
+  //   console.log(content.slice(element.start.index, element.end.index));
+  //   // element.raw && console.log(element.raw);
+  // }
+</script>
+</html>
