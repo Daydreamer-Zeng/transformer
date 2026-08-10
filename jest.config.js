@@ -2,21 +2,12 @@ export default {
   preset: "ts-jest/presets/default-esm",
   testEnvironment: "node",
   globals: {
-    "babel-jest": {
-      useESM: true
-    },
     "ts-jest": {
       useESM: true,
       tsconfig: "tsconfig.json"
     }
   },
   transform: {
-    "^.+\\.js$": [
-      "babel-jest",
-      {
-        configFile: "./babel.config.js"
-      }
-    ],
     "^.+\\.ts$": [
       "ts-jest",
       {
