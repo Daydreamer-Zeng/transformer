@@ -1,4 +1,5 @@
-const baseNum = .1e10_11;
+// leading
+baseNum = /* inner leading */.1e10_11; // trailing
 const underscoreNum = 1_000_000.;
 const binaryNum = 0b1010;
 const octalNum = 0o755;
@@ -54,3 +55,11 @@ const longStr1 = 'This is a very long ' +
 
 const longStr2 = 'This is a very long \
 string that continues on next line';
+
+outerLoop: for (let i = 0; i < 10; i++) {
+  innerLoop: for (let j = 0; j < 10; j++) {
+    if (i * j > 50) {
+      break outerLoop;
+    }
+  }
+}

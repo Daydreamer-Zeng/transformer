@@ -8,7 +8,8 @@
 <body>
 
 </body>
-<script type="module">
+<!-- Tokenizer Debug -->
+<!-- <script type="module">
   import Tokenizer from "./tokenizer.js";
 
   const response = await fetch("./debug.js");
@@ -27,5 +28,22 @@
   //   console.log(content.slice(element.start.index, element.end.index));
   //   // element.raw && console.log(element.raw);
   // }
+</script> -->
+
+<!-- Parser Debug -->
+<script type="module">
+  import Parser from "./parser.js";
+
+  const response = await fetch("./debug.js");
+  const content = await response.text();
+
+  console.time("parser");
+  const parser = new Parser();
+  console.log(parser)
+
+  const ast = parser.parse(content);
+ 
+  console.log(ast);
+  console.timeEnd("parser");
 </script>
 </html>

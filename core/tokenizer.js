@@ -2,6 +2,9 @@ import charCodes from "./charCodes.js";
 import { TOKEN_TYPES as t } from "./types.js";
 import { TABLE_ENUM, KEYWORD_TABLE, PUNCTUATOR_TABLE } from "./tables.js";
 
+const UNICODE_IDENTIFIER_START = /\p{ID_Start}/u;
+const UNICODE_IDENTIFIER_PART = /\p{ID_Continue}/u;
+
 class Tokenizer {
   constructor(options = {}) {
     this.options = {
@@ -269,8 +272,8 @@ class Tokenizer {
     }
   }
 
-  isStartOfIdentifier(char = this.currentChar) {
-    const code = char.charCodeAt(0);
+  isStartOfIdentifier() {
+    const code = this.currentChar.charCodeAt(0);
 
     if (
       (code >= charCodes.a && code <= charCodes.z) || // a-z
@@ -281,7 +284,7 @@ class Tokenizer {
       return true;
     }
 
-    return false;
+    return UNICODE_IDENTIFIER_START.test(this.currentChar);
   }
 
   isKeyword(value) {
@@ -294,11 +297,27 @@ class Tokenizer {
     return this.options.strictMode && (flag & TABLE_ENUM.STRICT_MODE) === TABLE_ENUM.STRICT_MODE;
   }
 
+  isIdentifier(char = this.currentChar) {
+    const code = char.charCodeAt(0);
+
+    if (
+      (code >= charCodes.a && code <= charCodes.z) || // a-z
+      (code >= charCodes.A && code <= charCodes.Z) || // A-Z
+      (code >= charCodes.zero && code <= charCodes.nine) || // 0-9
+      code === charCodes.underscore || // _
+      code === charCodes.dollar // $
+    ) {
+      return true;
+    }
+
+    return UNICODE_IDENTIFIER_PART.test(char);
+  }
+
   readIdentifier() {
     const start = this.getLocation();
     let value = "";
 
-    while (this.position < this.source.length && this.isStartOfIdentifier()) {
+    while (this.position < this.source.length && this.isIdentifier()) {
       value += this.currentChar;
       this.nextChar();
     }
@@ -505,7 +524,7 @@ class Tokenizer {
     }
 
     if (this.currentChar.charCodeAt(0) === charCodes.n) {
-      if (hasFraction || hasExponent || this.isStartOfIdentifier(this.source.charAt(this.position + 1))) {
+      if (hasFraction || hasExponent || this.isIdentifier(this.source.charAt(this.position + 1))) {
         this.unexpected("Invalid bigInt literal: the suffix 'n' cannot be attached to decimal or exponent notation.", this.getLocation(), this.currentChar);
       }
 
@@ -709,7 +728,7 @@ class Tokenizer {
     let inTemplateExpr = false;
 
     this.nextChar();
-    this.addToken(t.TemplateLiteralBegin, start, { value: "", raw: "`" });
+    this.addToken(t.TemplateLiteralBegin, start, { value: "`", raw: "`" });
 
     let elStartLoc = this.getLocation();
 
@@ -755,11 +774,11 @@ class Tokenizer {
 
       if (code === charCodes.backtick) {
         const raw = this.source.slice(elStartLoc.index, this.position);
-        this.addToken(t.TemplateElement, elStartLoc, { value, raw });
+        this.addToken(t.TemplateElement, elStartLoc, { value, raw, tail: true });
 
         elStartLoc = this.getLocation();
         this.nextChar();
-        this.addToken(t.TemplateLiteralEnd, elStartLoc, { value: "", raw: "`", tail: true });
+        this.addToken(t.TemplateLiteralEnd, elStartLoc, { value: "`", raw: "`" });
         return;
       }
 
@@ -767,6 +786,7 @@ class Tokenizer {
         const raw = this.source.slice(elStartLoc.index, this.position);
         this.addToken(t.TemplateElement, elStartLoc, { value, raw, tail: false });
 
+        value = "";
         elStartLoc = this.getLocation();
         this.nextChar();
         this.nextChar();
@@ -884,7 +904,7 @@ class Tokenizer {
         this.nextChar();
 
         let flags = "";
-        while (this.currentChar && this.isStartOfIdentifier()) {
+        while (this.currentChar && this.isIdentifier()) {
           flags += this.currentChar;
           this.nextChar();
         }
